@@ -40,20 +40,19 @@
     .panel { display: none; }
     .panel.active { display: block; }
 
-    /* Player list */
-    .player-list { display: flex; flex-direction: column; gap: 10px; }
+    /* Player list — 2-column compact grid */
+    .player-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
     .player-btn {
-      display: flex; align-items: center; gap: 14px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
       background: var(--bg-elev); border: 2px solid var(--border); border-radius: var(--radius);
-      padding: 14px 16px; color: var(--text); font: inherit; font-size: 1rem; text-align: left;
+      padding: 8px 6px; color: var(--text); font: inherit; font-size: 0.85rem; text-align: center;
       cursor: pointer; transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+      min-height: 0;
     }
     .player-btn:active { background: var(--bg-elev-2); }
     .player-btn.active { border-color: var(--accent); background: var(--bg-elev-2); box-shadow: 0 0 0 1px var(--accent), 0 2px 12px var(--accent-glow); }
-    .player-number { background: var(--accent); color: #fff; font-weight: 800; font-size: 1.1rem; min-width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 10px; flex-shrink: 0; }
-    .player-details { flex: 1; min-width: 0; }
-    .player-name-text { font-weight: 700; font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .player-meta { color: var(--muted); font-size: 0.8rem; margin-top: 2px; }
+    .player-name-text { font-weight: 700; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+    .player-meta { color: var(--muted); font-size: 0.72rem; margin-top: 1px; }
 
     /* Manage roster form */
     .form-group { margin-bottom: 12px; }
@@ -106,8 +105,27 @@
     .style-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .style-controls label { font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); display: block; margin-bottom: 2px; }
     .style-controls input[type="number"] { width: 100%; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font: inherit; font-size: 0.85rem; }
-    .style-controls input[type="color"] { width: 100%; height: 32px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); cursor: pointer; padding: 2px; }
+    .style-controls input[type="color"] { width: 40px; height: 32px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); cursor: pointer; padding: 2px; flex-shrink: 0; }
+    .color-row { display: flex; gap: 6px; align-items: center; }
+    .color-row input[type="text"] { flex: 1; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font: inherit; font-size: 0.8rem; font-family: monospace; }
     .btn-save-styles { width: 100%; margin-top: 16px; }
+
+    /* Arrow pad for position controls */
+    .arrow-pad { display: grid; grid-template-columns: repeat(3, 32px); grid-template-rows: repeat(3, 28px); gap: 2px; justify-content: center; }
+    .arrow-pad button { background: var(--bg-elev-2); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .arrow-pad button:active { background: var(--accent); color: #fff; }
+    .arrow-pad .pad-center { font-size: 0.55rem; color: var(--muted); pointer-events: none; background: transparent; border-color: transparent; }
+
+    /* Global controls section */
+    .global-controls { background: var(--bg-elev); border: 2px solid var(--accent); border-radius: 12px; padding: 14px; margin-bottom: 16px; }
+    .global-controls h3 { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; color: var(--accent); }
+    .global-row { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+    .global-group { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .global-group label { font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); }
+    .zoom-controls { display: flex; align-items: center; gap: 6px; }
+    .zoom-controls button { width: 36px; height: 36px; background: var(--bg-elev-2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 1.1rem; font-weight: 700; cursor: pointer; }
+    .zoom-controls button:active { background: var(--accent); color: #fff; }
+    .zoom-controls span { font-size: 0.85rem; font-weight: 600; min-width: 50px; text-align: center; color: var(--text); }
 
     /* ===== Soundboard iframe ===== */
     .sounds-iframe-wrap {
@@ -135,8 +153,8 @@
       .tab { padding: 8px 2px; font-size: 0.68rem; }
       .form-row { flex-direction: column; gap: 0; }
       .style-controls { grid-template-columns: 1fr; }
-      .player-btn { padding: 12px; gap: 10px; }
-      .player-number { min-width: 42px; height: 42px; font-size: 1rem; }
+      .player-btn { padding: 6px 4px; }
+      .player-list { gap: 4px; }
       .style-field { padding: 10px; }
       .bottom-bar { padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); }
       .bottom-bar button { padding: 12px; font-size: 0.85rem; }
@@ -437,11 +455,9 @@
       empty.style.display = "none";
       list.innerHTML = roster.map(p =>
         '<button class="player-btn' + (p.id === activeId ? ' active' : '') + '" onclick="selectPlayer(\'' + esc(p.id) + '\')">' +
-        '<div class="player-number">#' + esc(p.number) + '</div>' +
-        '<div class="player-details">' +
         '<div class="player-name-text">' + esc(p.name) + '</div>' +
-        '<div class="player-meta">' + esc(p.grade) + ' &middot; ' + esc(p.height) + ' &middot; ' + esc(p.weight) + '</div>' +
-        '</div></button>'
+        '<div class="player-meta">' + esc(p.grade || '') + '</div>' +
+        '</button>'
       ).join("");
     }
 
@@ -478,15 +494,33 @@
       { key: 'weight', label: 'Weight' },
     ];
 
+    let globalOffsetX = 0, globalOffsetY = 0, globalZoom = 100;
+
     function renderStylePanel() {
       const container = document.getElementById('styleFields');
-      container.innerHTML = STYLE_FIELDS.map(f => {
+      // Load global styles
+      const g = currentStyles._global || {};
+      globalOffsetX = g.offsetX || 0;
+      globalOffsetY = g.offsetY || 0;
+      globalZoom = g.zoom || 100;
+
+      let html = '<div class="global-controls">' +
+        '<h3>Entire Display</h3>' +
+        '<div class="global-row">' +
+        '<div class="global-group"><label>Position</label>' + buildArrowPad('_global') + '</div>' +
+        '<div class="global-group"><label>Zoom</label>' +
+        '<div class="zoom-controls">' +
+        '<button onclick="adjustZoom(-5)">&#8722;</button>' +
+        '<span id="zoomLabel">' + globalZoom + '%</span>' +
+        '<button onclick="adjustZoom(5)">+</button>' +
+        '</div></div>' +
+        '</div></div>';
+
+      html += STYLE_FIELDS.map(f => {
         const s = currentStyles[f.key] || {};
         const visible = !s.hidden;
         const fontSize = s.fontSize || '';
         const color = s.color || '#C5B358';
-        const offsetX = s.offsetX || 0;
-        const offsetY = s.offsetY || 0;
         return '<div class="style-field">' +
           '<div class="style-field-header">' +
           '<h4>' + esc(f.label) + '</h4>' +
@@ -494,27 +528,72 @@
           '</div>' +
           '<div class="style-controls">' +
           '<div><label>Font Size (px)</label><input type="number" data-field="' + f.key + '" data-prop="fontSize" value="' + fontSize + '" placeholder="Default" min="8" max="120" /></div>' +
-          '<div><label>Color</label><input type="color" data-field="' + f.key + '" data-prop="color" value="' + color + '" /></div>' +
-          '<div><label>Offset X (px)</label><input type="number" data-field="' + f.key + '" data-prop="offsetX" value="' + offsetX + '" /></div>' +
-          '<div><label>Offset Y (px)</label><input type="number" data-field="' + f.key + '" data-prop="offsetY" value="' + offsetY + '" /></div>' +
+          '<div><label>Color</label><div class="color-row"><input type="color" data-field="' + f.key + '" data-prop="color" value="' + color + '" onchange="syncColorText(this)" /><input type="text" data-field="' + f.key + '" data-prop="colorHex" value="' + color + '" placeholder="#C5B358" maxlength="7" onchange="syncColorPicker(this)" /></div></div>' +
+          '<div style="grid-column:1/-1;"><label>Position</label>' + buildArrowPad(f.key) + '</div>' +
           '</div></div>';
       }).join('');
+      container.innerHTML = html;
     }
 
+    function buildArrowPad(fieldKey) {
+      return '<div class="arrow-pad">' +
+        '<button></button><button onclick="nudge(\'' + fieldKey + '\',0,-5)">&#9650;</button><button></button>' +
+        '<button onclick="nudge(\'' + fieldKey + '\', -5,0)">&#9664;</button><span class="pad-center">&#8982;</span><button onclick="nudge(\'' + fieldKey + '\',5,0)">&#9654;</button>' +
+        '<button></button><button onclick="nudge(\'' + fieldKey + '\',0,5)">&#9660;</button><button></button>' +
+        '</div>';
+    }
+
+    window.nudge = function(fieldKey, dx, dy) {
+      if (fieldKey === '_global') {
+        globalOffsetX += dx;
+        globalOffsetY += dy;
+        currentStyles._global = { offsetX: globalOffsetX, offsetY: globalOffsetY, zoom: globalZoom };
+      } else {
+        if (!currentStyles[fieldKey]) currentStyles[fieldKey] = {};
+        currentStyles[fieldKey].offsetX = (currentStyles[fieldKey].offsetX || 0) + dx;
+        currentStyles[fieldKey].offsetY = (currentStyles[fieldKey].offsetY || 0) + dy;
+      }
+      setDoc(liveRef, { styles: currentStyles }, { merge: true }).catch(() => showToast('Error'));
+      renderStylePanel();
+    };
+
+    window.adjustZoom = function(delta) {
+      globalZoom = Math.max(10, Math.min(300, globalZoom + delta));
+      currentStyles._global = { offsetX: globalOffsetX, offsetY: globalOffsetY, zoom: globalZoom };
+      const label = document.getElementById('zoomLabel');
+      if (label) label.textContent = globalZoom + '%';
+      setDoc(liveRef, { styles: currentStyles }, { merge: true }).catch(() => showToast('Error'));
+    };
+
+    window.syncColorText = function(colorInput) {
+      const field = colorInput.getAttribute('data-field');
+      const hexInput = document.querySelector('[data-field="' + field + '"][data-prop="colorHex"]');
+      if (hexInput) hexInput.value = colorInput.value;
+    };
+
+    window.syncColorPicker = function(hexInput) {
+      let val = hexInput.value.trim();
+      if (val && !val.startsWith('#')) val = '#' + val;
+      if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+        const field = hexInput.getAttribute('data-field');
+        const colorInput = document.querySelector('[data-field="' + field + '"][data-prop="color"]');
+        if (colorInput) colorInput.value = val;
+        hexInput.value = val;
+      }
+    };
+
     window.saveStyles = function() {
-      const styles = {};
+      const styles = { _global: { offsetX: globalOffsetX, offsetY: globalOffsetY, zoom: globalZoom } };
       STYLE_FIELDS.forEach(f => {
         const vis = document.querySelector('[data-field="' + f.key + '"][data-prop="visible"]');
         const fs = document.querySelector('[data-field="' + f.key + '"][data-prop="fontSize"]');
         const col = document.querySelector('[data-field="' + f.key + '"][data-prop="color"]');
-        const ox = document.querySelector('[data-field="' + f.key + '"][data-prop="offsetX"]');
-        const oy = document.querySelector('[data-field="' + f.key + '"][data-prop="offsetY"]');
         styles[f.key] = {
           hidden: vis ? !vis.checked : false,
           fontSize: fs && fs.value ? parseInt(fs.value) : null,
           color: col ? col.value : null,
-          offsetX: ox && ox.value ? parseInt(ox.value) : 0,
-          offsetY: oy && oy.value ? parseInt(oy.value) : 0,
+          offsetX: (currentStyles[f.key] || {}).offsetX || 0,
+          offsetY: (currentStyles[f.key] || {}).offsetY || 0,
         };
       });
       currentStyles = styles;
