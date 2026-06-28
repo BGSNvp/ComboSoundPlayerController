@@ -312,7 +312,7 @@
       const p = roster.find(r => r.id === id);
       if (!p) return;
       activeId = id;
-      setDoc(liveRef, { ...p, visible: false, styles: currentStyles }).then(() => {
+      setDoc(liveRef, { id: p.id, name: p.name, number: p.number, grade: p.grade || "", height: p.height || "", weight: p.weight || "", video: p.video || "", visible: false }, { merge: true }).then(() => {
         showToast(p.name + " selected");
       }).catch(() => showToast("Error updating"));
     };
