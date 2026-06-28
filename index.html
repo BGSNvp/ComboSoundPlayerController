@@ -40,19 +40,22 @@
     .panel { display: none; }
     .panel.active { display: block; }
 
-    /* Player list — 2-column compact grid */
-    .player-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    /* Player list — two side-by-side columns (by name / by number) */
+    .select-columns { display: flex; gap: 8px; }
+    .select-col { flex: 1; min-width: 0; }
+    .col-header { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent); text-align: center; margin-bottom: 4px; }
+    .player-col-list { display: flex; flex-direction: column; gap: 3px; }
     .player-btn {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      background: var(--bg-elev); border: 2px solid var(--border); border-radius: var(--radius);
-      padding: 8px 6px; color: var(--text); font: inherit; font-size: 0.85rem; text-align: center;
+      background: var(--bg-elev); border: 2px solid var(--border); border-radius: 8px;
+      padding: 4px 4px; color: var(--text); font: inherit; font-size: 0.78rem; text-align: center;
       cursor: pointer; transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
-      min-height: 0;
+      min-height: 0; width: 100%;
     }
     .player-btn:active { background: var(--bg-elev-2); }
     .player-btn.active { border-color: var(--accent); background: var(--bg-elev-2); box-shadow: 0 0 0 1px var(--accent), 0 2px 12px var(--accent-glow); }
-    .player-name-text { font-weight: 700; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-    .player-meta { color: var(--muted); font-size: 0.72rem; margin-top: 1px; }
+    .player-name-text { font-weight: 700; font-size: 0.78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+    .player-meta { color: var(--muted); font-size: 0.65rem; margin-top: 0; }
 
     /* Manage roster form */
     .form-group { margin-bottom: 12px; }
@@ -153,8 +156,11 @@
       .tab { padding: 8px 2px; font-size: 0.68rem; }
       .form-row { flex-direction: column; gap: 0; }
       .style-controls { grid-template-columns: 1fr; }
-      .player-btn { padding: 6px 4px; }
-      .player-list { gap: 4px; }
+      .player-btn { padding: 3px 3px; font-size: 0.72rem; }
+      .player-col-list { gap: 2px; }
+      .select-columns { gap: 4px; }
+      .player-name-text { font-size: 0.72rem; }
+      .player-meta { font-size: 0.6rem; }
       .style-field { padding: 10px; }
       .bottom-bar { padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); }
       .bottom-bar button { padding: 12px; font-size: 0.85rem; }
@@ -177,7 +183,16 @@
 
   <!-- SELECT tab -->
   <div id="panelSelect" class="panel active">
-    <div id="playerList" class="player-list"></div>
+    <div class="select-columns">
+      <div class="select-col">
+        <div class="col-header">By Name</div>
+        <div id="playerListByName" class="player-col-list"></div>
+      </div>
+      <div class="select-col">
+        <div class="col-header">By Number</div>
+        <div id="playerListByNumber" class="player-col-list"></div>
+      </div>
+    </div>
     <div id="emptySelect" class="empty-msg" style="display:none;">No players yet. Go to Roster tab to add some.</div>
   </div>
 
@@ -449,16 +464,21 @@
 
     /* ========== Render functions ========== */
     function renderSelectList() {
-      const list = document.getElementById("playerList");
+      const byName = document.getElementById("playerListByName");
+      const byNum = document.getElementById("playerListByNumber");
       const empty = document.getElementById("emptySelect");
-      if (!roster.length) { list.innerHTML = ""; empty.style.display = ""; return; }
+      if (!roster.length) { byName.innerHTML = ""; byNum.innerHTML = ""; empty.style.display = ""; return; }
       empty.style.display = "none";
-      list.innerHTML = roster.map(p =>
-        '<button class="player-btn' + (p.id === activeId ? ' active' : '') + '" onclick="selectPlayer(\'' + esc(p.id) + '\')">' +
-        '<div class="player-name-text">' + esc(p.name) + '</div>' +
-        '<div class="player-meta">' + esc(p.grade || '') + '</div>' +
-        '</button>'
-      ).join("");
+      var btnHtml = function(p, label) {
+        return '<button class="player-btn' + (p.id === activeId ? ' active' : '') + '" onclick="selectPlayer(\'' + esc(p.id) + '\')">' +
+          '<div class="player-name-text">' + label + '</div>' +
+          '<div class="player-meta">' + esc(p.grade || '') + '</div>' +
+          '</button>';
+      };
+      var sortedByName = roster.slice().sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
+      var sortedByNum = roster.slice().sort(function(a, b) { return (parseInt(a.number) || 0) - (parseInt(b.number) || 0); });
+      byName.innerHTML = sortedByName.map(function(p) { return btnHtml(p, esc(p.name)); }).join("");
+      byNum.innerHTML = sortedByNum.map(function(p) { return btnHtml(p, '#' + esc(p.number) + ' ' + esc(p.name)); }).join("");
     }
 
     function renderRosterList() {
