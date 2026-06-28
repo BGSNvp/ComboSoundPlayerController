@@ -48,7 +48,7 @@
     .player-btn {
       display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
       background: var(--bg-elev); border: 2px solid var(--border); border-radius: 8px;
-      padding: 4px 6px; color: var(--text); font: inherit; font-size: 0.78rem; text-align: left;
+      padding: 4px 6px; color: var(--text); font: inherit; font-size: 0.94rem; text-align: left;
       cursor: pointer; transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
       width: 100%; line-height: 1.3;
     }
@@ -154,7 +154,7 @@
       .tab { padding: 8px 2px; font-size: 0.68rem; }
       .form-row { flex-direction: column; gap: 0; }
       .style-controls { grid-template-columns: 1fr; }
-      .player-btn { padding: 3px 4px; font-size: 0.72rem; }
+      .player-btn { padding: 3px 4px; font-size: 0.86rem; }
       .player-col-list { gap: 2px; }
       .select-columns { gap: 4px; }
       .style-field { padding: 10px; }
@@ -471,8 +471,8 @@
       };
       var sortedByName = roster.slice().sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
       var sortedByNum = roster.slice().sort(function(a, b) { return (parseInt(a.number) || 0) - (parseInt(b.number) || 0); });
-      byName.innerHTML = sortedByName.map(function(p) { return btnHtml(p, esc(p.name)); }).join("");
-      byNum.innerHTML = sortedByNum.map(function(p) { return btnHtml(p, '#' + esc(p.number) + ' ' + esc(p.name)); }).join("");
+      byName.innerHTML = sortedByName.map(function(p) { return btnHtml(p, esc(p.name) + (p.grade ? ' · ' + esc(p.grade) : '')); }).join("");
+      byNum.innerHTML = sortedByNum.map(function(p) { return btnHtml(p, '#' + esc(p.number) + ' ' + esc(p.name) + (p.grade ? ' · ' + esc(p.grade) : '')); }).join("");
     }
 
     function renderRosterList() {
