@@ -46,16 +46,14 @@
     .col-header { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent); text-align: center; margin-bottom: 4px; }
     .player-col-list { display: flex; flex-direction: column; gap: 3px; }
     .player-btn {
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
       background: var(--bg-elev); border: 2px solid var(--border); border-radius: 8px;
-      padding: 4px 4px; color: var(--text); font: inherit; font-size: 0.78rem; text-align: center;
+      padding: 4px 6px; color: var(--text); font: inherit; font-size: 0.78rem; text-align: left;
       cursor: pointer; transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
-      min-height: 0; width: 100%;
+      width: 100%; line-height: 1.3;
     }
     .player-btn:active { background: var(--bg-elev-2); }
     .player-btn.active { border-color: var(--accent); background: var(--bg-elev-2); box-shadow: 0 0 0 1px var(--accent), 0 2px 12px var(--accent-glow); }
-    .player-name-text { font-weight: 700; font-size: 0.78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-    .player-meta { color: var(--muted); font-size: 0.65rem; margin-top: 0; }
 
     /* Manage roster form */
     .form-group { margin-bottom: 12px; }
@@ -156,11 +154,9 @@
       .tab { padding: 8px 2px; font-size: 0.68rem; }
       .form-row { flex-direction: column; gap: 0; }
       .style-controls { grid-template-columns: 1fr; }
-      .player-btn { padding: 3px 3px; font-size: 0.72rem; }
+      .player-btn { padding: 3px 4px; font-size: 0.72rem; }
       .player-col-list { gap: 2px; }
       .select-columns { gap: 4px; }
-      .player-name-text { font-size: 0.72rem; }
-      .player-meta { font-size: 0.6rem; }
       .style-field { padding: 10px; }
       .bottom-bar { padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); }
       .bottom-bar button { padding: 12px; font-size: 0.85rem; }
@@ -471,9 +467,7 @@
       empty.style.display = "none";
       var btnHtml = function(p, label) {
         return '<button class="player-btn' + (p.id === activeId ? ' active' : '') + '" onclick="selectPlayer(\'' + esc(p.id) + '\')">' +
-          '<div class="player-name-text">' + label + '</div>' +
-          '<div class="player-meta">' + esc(p.grade || '') + '</div>' +
-          '</button>';
+          label + '</button>';
       };
       var sortedByName = roster.slice().sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
       var sortedByNum = roster.slice().sort(function(a, b) { return (parseInt(a.number) || 0) - (parseInt(b.number) || 0); });
