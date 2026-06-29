@@ -168,7 +168,8 @@
       white-space: nowrap; text-overflow: ellipsis;
     }
     .sb-card:active { transform: scale(0.97); }
-    .sb-card .sb-label { font-size: 0.82rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; display: block; }
+    .sb-card .sb-label { font-size: 1.02rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; display: block; }
+    .sb-card.selected { border-color: var(--accent); background: var(--bg-elev-2); box-shadow: 0 0 0 1px var(--accent), 0 2px 12px var(--accent-glow); }
     .sb-card .sb-progress { position: absolute; bottom: 0; left: 0; height: 2px; background: var(--accent); width: 0%; transition: width 0.1s linear; }
     .sb-card.playing { filter: brightness(1.3); box-shadow: 0 0 8px rgba(255,255,255,0.1); }
     .sb-card[data-ci="1"] { border-left: 4px solid var(--c1); background: rgba(212,0,255,0.08); }
@@ -368,9 +369,13 @@
   </div>
 
   <!-- Bottom bar: Show Player (7s) / Hide -->
-  <div class="bottom-bar">
+  <div class="bottom-bar" id="bottomBarPlayer">
     <button class="btn-show" onclick="showOverlay()">&#9654; Show Player (7s)</button>
     <button class="btn-hide" onclick="hideOverlay()">Hide</button>
+  </div>
+  <div class="bottom-bar" id="bottomBarSound" style="display:none;">
+    <button class="btn-show" onclick="sbPlaySelected()">&#9654; Play Sound</button>
+    <button class="btn-hide" onclick="sbStopAll()">Stop</button>
   </div>
 
   <div id="toast" class="toast"></div>
@@ -517,6 +522,7 @@
     let sbActiveCat = 'all';
     let sbSearchQ = '';
     let sbEditingId = null;
+    let sbSelectedSoundId = null;
     let sbCtxTargetId = null;
     let sbMasterVol = 0.80;
     let sbAudioCtx = null;
@@ -617,7 +623,7 @@
       }
       grid.innerHTML = pool.map(s => {
         const ci = sbCategories.findIndex(c => c.id === s.cat) + 1;
-        return '<div class="sb-card' + (sbActiveNodes[s.id] ? ' playing' : '') + '" data-id="' + esc(s.id) + '" data-ci="' + ci + '">' +
+        return '<div class="sb-card' + (sbActiveNodes[s.id] ? ' playing' : '') + (s.id === sbSelectedSoundId ? ' selected' : '') + '" data-id="' + esc(s.id) + '" data-ci="' + ci + '">' +
           '<span class="sb-label">' + esc(s.name) + '</span>' +
           '<div class="sb-progress" id="sbpb-' + esc(s.id) + '"></div>' +
           '</div>';
@@ -630,7 +636,7 @@
           timer = setTimeout(() => { timer = null; sbOpenCtx(card.dataset.id, e.clientX, e.clientY); }, 500);
         });
         card.addEventListener('pointerup', () => {
-          if (timer) { clearTimeout(timer); timer = null; sbTogglePlay(card.dataset.id); }
+          if (timer) { clearTimeout(timer); timer = null; sbSelectSound(card.dataset.id); }
         });
         card.addEventListener('pointercancel', () => { clearTimeout(timer); timer = null; });
         card.addEventListener('contextmenu', (e) => { e.preventDefault(); sbOpenCtx(card.dataset.id, e.clientX, e.clientY); });
@@ -668,9 +674,17 @@
       return buf;
     }
 
-    window.sbTogglePlay = function(id) {
-      if (sbActiveNodes[id]) { sbStopSound(id); return; }
-      sbPlaySound(id);
+    window.sbSelectSound = function(id) {
+      sbSelectedSoundId = (sbSelectedSoundId === id) ? null : id;
+      renderSbGrid();
+      const s = sbSounds.find(x => x.id === id);
+      if (s && sbSelectedSoundId) showToast(s.name + ' selected');
+    };
+
+    window.sbPlaySelected = function() {
+      if (!sbSelectedSoundId) { showToast('Select a sound first'); return; }
+      if (sbActiveNodes[sbSelectedSoundId]) { sbStopSound(sbSelectedSoundId); return; }
+      sbPlaySound(sbSelectedSoundId);
     };
 
     async function sbPlaySound(id) {
@@ -938,6 +952,8 @@
       document.getElementById("panelManage").classList.toggle("active", tab === "manage");
       document.getElementById("panelStyle").classList.toggle("active", tab === "style");
       document.getElementById("panelSounds").classList.toggle("active", tab === "sounds");
+      document.getElementById("bottomBarPlayer").style.display = (tab === "sounds") ? "none" : "flex";
+      document.getElementById("bottomBarSound").style.display = (tab === "sounds") ? "flex" : "none";
       if (tab === "style") renderStylePanel();
     };
 
