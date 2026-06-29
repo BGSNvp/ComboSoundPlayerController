@@ -17,6 +17,7 @@
       --success: #44d29a;
       --border: #2a3050;
       --radius: 14px;
+      --c1: #d400ff; --c2: #00f5a0; --c3: #0090f5; --c4: #f5a000; --c5: #00d4f5; --c6: #ff3b5c; --c7: #80f520;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
@@ -128,23 +129,82 @@
     .zoom-controls button:active { background: var(--accent); color: #fff; }
     .zoom-controls span { font-size: 0.85rem; font-weight: 600; min-width: 50px; text-align: center; color: var(--text); }
 
-    /* ===== Soundboard iframe ===== */
-    .sounds-iframe-wrap {
-      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      z-index: 50; display: none;
+    /* ===== Soundboard panel (native) ===== */
+    .sb-toolbar { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; }
+    .sb-toolbar input[type="text"] { flex: 1; min-width: 100px; padding: 8px 10px; border: 2px solid var(--border); border-radius: 8px; background: var(--bg-elev); color: var(--text); font: inherit; font-size: 0.85rem; outline: none; }
+    .sb-toolbar input[type="text"]:focus { border-color: var(--accent); }
+    .sb-toolbar .sb-btn { padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-elev); color: var(--text); font: inherit; font-size: 0.75rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+    .sb-toolbar .sb-btn:active { opacity: 0.7; }
+    .sb-toolbar .sb-btn.accent { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .sb-toolbar .sb-btn.danger { border-color: var(--danger); color: var(--danger); }
+
+    .sb-cats { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+    .sb-cat-btn { padding: 5px 12px; border: 2px solid var(--border); border-radius: 20px; background: transparent; color: var(--text); font: inherit; font-size: 0.75rem; font-weight: 700; cursor: pointer; white-space: nowrap; text-transform: uppercase; }
+    .sb-cat-btn.active { background: rgba(255,255,255,0.12); }
+    .sb-cat-btn[data-cat="cat1"] { border-color: var(--c1); color: var(--c1); }
+    .sb-cat-btn[data-cat="cat1"].active { background: rgba(212,0,255,0.15); }
+    .sb-cat-btn[data-cat="cat2"] { border-color: var(--c2); color: var(--c2); }
+    .sb-cat-btn[data-cat="cat2"].active { background: rgba(0,245,160,0.15); }
+    .sb-cat-btn[data-cat="cat3"] { border-color: var(--c3); color: var(--c3); }
+    .sb-cat-btn[data-cat="cat3"].active { background: rgba(0,144,245,0.15); }
+    .sb-cat-btn[data-cat="cat4"] { border-color: var(--c4); color: var(--c4); }
+    .sb-cat-btn[data-cat="cat4"].active { background: rgba(245,160,0,0.15); }
+    .sb-cat-btn[data-cat="cat5"] { border-color: var(--c5); color: var(--c5); }
+    .sb-cat-btn[data-cat="cat5"].active { background: rgba(0,212,245,0.15); }
+    .sb-cat-btn[data-cat="cat6"] { border-color: var(--c6); color: var(--c6); }
+    .sb-cat-btn[data-cat="cat6"].active { background: rgba(255,59,92,0.15); }
+    .sb-cat-btn[data-cat="cat7"] { border-color: var(--c7); color: var(--c7); }
+    .sb-cat-btn[data-cat="cat7"].active { background: rgba(128,245,32,0.15); }
+
+    .sb-vol-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 0.75rem; color: var(--muted); }
+    .sb-vol-row input[type="range"] { flex: 1; max-width: 160px; accent-color: var(--accent); }
+    .sb-vol-row .vol-label { color: var(--accent); font-weight: 700; min-width: 32px; }
+
+    .sb-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; }
+    .sb-card {
+      background: var(--bg-elev); border: 1.5px solid var(--border); border-radius: 8px;
+      padding: 7px 8px; cursor: pointer; position: relative; overflow: hidden;
+      user-select: none; -webkit-user-select: none; transition: all 0.15s;
+      white-space: nowrap; text-overflow: ellipsis;
     }
-    .sounds-iframe-wrap.active { display: block; }
-    .sounds-iframe-wrap iframe {
-      width: 100%; height: 100%; border: none;
-    }
-    .sounds-back-btn {
-      position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
-      z-index: 60; padding: 10px 28px; border: none; border-radius: 30px;
-      background: var(--accent); color: #fff; font: inherit; font-size: 0.85rem;
-      font-weight: 700; cursor: pointer; box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-      display: none;
-    }
-    .sounds-back-btn.active { display: block; }
+    .sb-card:active { transform: scale(0.97); }
+    .sb-card .sb-label { font-size: 0.82rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; display: block; }
+    .sb-card .sb-progress { position: absolute; bottom: 0; left: 0; height: 2px; background: var(--accent); width: 0%; transition: width 0.1s linear; }
+    .sb-card.playing { filter: brightness(1.3); box-shadow: 0 0 8px rgba(255,255,255,0.1); }
+    .sb-card[data-ci="1"] { border-left: 4px solid var(--c1); background: rgba(212,0,255,0.08); }
+    .sb-card[data-ci="1"] .sb-label { color: var(--c1); }
+    .sb-card[data-ci="2"] { border-left: 4px solid var(--c2); background: rgba(0,245,160,0.08); }
+    .sb-card[data-ci="2"] .sb-label { color: var(--c2); }
+    .sb-card[data-ci="3"] { border-left: 4px solid var(--c3); background: rgba(0,144,245,0.08); }
+    .sb-card[data-ci="3"] .sb-label { color: var(--c3); }
+    .sb-card[data-ci="4"] { border-left: 4px solid var(--c4); background: rgba(245,160,0,0.08); }
+    .sb-card[data-ci="4"] .sb-label { color: var(--c4); }
+    .sb-card[data-ci="5"] { border-left: 4px solid var(--c5); background: rgba(0,212,245,0.08); }
+    .sb-card[data-ci="5"] .sb-label { color: var(--c5); }
+    .sb-card[data-ci="6"] { border-left: 4px solid var(--c6); background: rgba(255,59,92,0.08); }
+    .sb-card[data-ci="6"] .sb-label { color: var(--c6); }
+    .sb-card[data-ci="7"] { border-left: 4px solid var(--c7); background: rgba(128,245,32,0.08); }
+    .sb-card[data-ci="7"] .sb-label { color: var(--c7); }
+    .sb-empty { grid-column: 1/-1; text-align: center; color: var(--muted); padding: 40px 20px; font-size: 0.85rem; line-height: 2; }
+
+    /* Sound add/edit modal */
+    .sb-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
+    .sb-modal-overlay.open { display: flex; }
+    .sb-modal { background: var(--bg-elev); border: 1.5px solid var(--border); border-radius: 14px; padding: 20px; width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 12px; }
+    .sb-modal h3 { font-size: 1rem; font-weight: 700; color: var(--accent); }
+    .sb-field { display: flex; flex-direction: column; gap: 4px; }
+    .sb-field label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); }
+    .sb-field input, .sb-field select { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font: inherit; font-size: 0.9rem; padding: 8px 10px; outline: none; }
+    .sb-field input:focus, .sb-field select:focus { border-color: var(--accent); }
+    .sb-modal-actions { display: flex; gap: 8px; }
+    .sb-modal-actions .btn { flex: 1; padding: 10px; font-size: 0.85rem; }
+
+    /* Context menu */
+    .sb-ctx { display: none; position: fixed; background: var(--bg-elev-2); border: 1px solid var(--border); border-radius: 10px; padding: 6px 0; z-index: 300; min-width: 150px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+    .sb-ctx.open { display: block; }
+    .sb-ctx-item { padding: 10px 16px; font-size: 0.8rem; cursor: pointer; }
+    .sb-ctx-item:active { background: rgba(255,255,255,0.06); }
+    .sb-ctx-item.red { color: var(--danger); }
 
     /* Portrait phone optimizations */
     @media (max-width: 420px) {
@@ -160,7 +220,6 @@
       .style-field { padding: 10px; }
       .bottom-bar { padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); }
       .bottom-bar button { padding: 12px; font-size: 0.85rem; }
-
     }
   </style>
 </head>
@@ -246,11 +305,67 @@
     <button class="btn btn-accent btn-save-styles" onclick="saveStyles()">Apply Styles</button>
   </div>
 
-  <!-- SOUNDBOARD (StreamBoard iframe) -->
-  <div id="soundsIframeWrap" class="sounds-iframe-wrap">
-    <iframe id="soundsIframe" src="https://bgsnvp.github.io/bgsnSounds/" allow="autoplay"></iframe>
+  <!-- SOUNDS tab (native, Firebase-synced) -->
+  <div id="panelSounds" class="panel">
+    <div class="sb-toolbar">
+      <input type="text" id="sbSearch" placeholder="Search sounds..." autocomplete="off" spellcheck="false" />
+      <button class="sb-btn accent" onclick="openSoundModal()">+ ADD</button>
+      <button class="sb-btn" onclick="importFromRepo()">IMPORT</button>
+      <button class="sb-btn danger" onclick="sbStopAll()">STOP</button>
+    </div>
+    <div class="sb-cats" id="sbCatBar"></div>
+    <div class="sb-vol-row">
+      <span>VOL</span>
+      <input type="range" id="sbVolSlider" min="0" max="100" value="80" step="1" />
+      <span class="vol-label" id="sbVolLabel">80%</span>
+      <span id="sbSoundCount" style="margin-left:auto;font-size:0.7rem;">0</span>
+    </div>
+    <div class="sb-grid" id="sbGrid"></div>
   </div>
-  <button id="soundsBackBtn" class="sounds-back-btn" onclick="switchTab('select')">&#8592; Back to Controller</button>
+
+  <!-- Sound Add/Edit Modal -->
+  <div class="sb-modal-overlay" id="sbModalOverlay" onclick="if(event.target===this)closeSoundModal()">
+    <div class="sb-modal">
+      <h3 id="sbModalTitle">Add Sound</h3>
+      <div class="sb-field"><label>Sound Name</label><input type="text" id="sbFName" placeholder="e.g. Air Horn" maxlength="60" /></div>
+      <div class="sb-field"><label>Category</label><select id="sbFCat"></select></div>
+      <div class="sb-field"><label>Audio URL</label><input type="text" id="sbFUrl" placeholder="https://raw.githubusercontent.com/..." /></div>
+      <div class="sb-field"><label>Volume Trim</label>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input type="range" id="sbFTrim" min="0" max="300" value="100" step="1" style="flex:1;accent-color:var(--accent);" />
+          <span id="sbFTrimLabel" style="color:var(--accent);font-weight:700;min-width:36px;font-size:0.8rem;">100%</span>
+        </div>
+      </div>
+      <div class="sb-modal-actions">
+        <button class="btn btn-outline" onclick="closeSoundModal()">Cancel</button>
+        <button class="btn btn-accent" onclick="saveSoundEntry()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sound Context Menu -->
+  <div class="sb-ctx" id="sbCtxMenu">
+    <div class="sb-ctx-item" onclick="sbCtxEdit()">&#9998; Edit</div>
+    <div class="sb-ctx-item" onclick="sbCtxAdjustVol()">&#127898; Volume</div>
+    <div class="sb-ctx-item red" onclick="sbCtxDelete()">&#128465; Delete</div>
+  </div>
+
+  <!-- Import from Repo Modal -->
+  <div class="sb-modal-overlay" id="sbImportOverlay" onclick="if(event.target===this)closeImportModal()">
+    <div class="sb-modal">
+      <h3>Import from GitHub Repo</h3>
+      <div class="sb-field"><label>GitHub Username</label><input type="text" id="importUser" value="BGSNvp" /></div>
+      <div class="sb-field"><label>Repository</label><input type="text" id="importRepo" value="bgsnSounds" /></div>
+      <div class="sb-field"><label>Branch</label><input type="text" id="importBranch" value="main" /></div>
+      <div id="importStatus" style="font-size:0.75rem;color:var(--muted);min-height:20px;"></div>
+      <div id="importFileList" style="max-height:300px;overflow-y:auto;"></div>
+      <div class="sb-modal-actions">
+        <button class="btn btn-outline" onclick="closeImportModal()">Cancel</button>
+        <button class="btn btn-accent" id="importScanBtn" onclick="scanRepo()">Scan Repo</button>
+        <button class="btn btn-accent" id="importAddBtn" onclick="addSelectedImports()" style="display:none;">Add Selected</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Bottom bar: Show Player (7s) / Hide -->
   <div class="bottom-bar">
@@ -276,6 +391,7 @@
     const liveRef = doc(db, "playerOverlay", "live");
     const rosterRef = doc(db, "playerOverlay", "roster");
     const soundTriggerRef = doc(db, "soundboard", "trigger");
+    const soundLibraryRef = doc(db, "soundboard", "library");
 
     let roster = [];
     let activeId = "";
@@ -305,8 +421,6 @@
       renderSelectList();
     });
 
-
-
     /* --- Select a player (just selects, doesn't show) --- */
     window.selectPlayer = function(id) {
       const p = roster.find(r => r.id === id);
@@ -319,7 +433,6 @@
 
     /* --- Show overlay for 7 seconds --- */
     window.showOverlay = function() {
-      // Write visible + a showTs so the overlay knows to re-trigger timer
       setDoc(liveRef, { visible: true, showTs: Date.now() }, { merge: true }).catch(() => showToast("Error"));
       showToast("Showing for 7s");
     };
@@ -388,7 +501,236 @@
       document.getElementById("cancelBtn").style.display = "none";
     };
 
-    /* ========== StreamBoard iframe bridge ========== */
+    /* ========== Soundboard — Firebase-synced ========== */
+    const DEFAULT_CATS = [
+      { id: 'cat1', name: 'Reactions' },
+      { id: 'cat2', name: 'Alerts' },
+      { id: 'cat3', name: 'Music' },
+      { id: 'cat4', name: 'Comedy' },
+      { id: 'cat5', name: 'Gaming' },
+      { id: 'cat6', name: 'Custom' },
+      { id: 'cat7', name: 'Drops' },
+    ];
+
+    let sbSounds = [];
+    let sbCategories = DEFAULT_CATS.slice();
+    let sbActiveCat = 'all';
+    let sbSearchQ = '';
+    let sbEditingId = null;
+    let sbCtxTargetId = null;
+    let sbMasterVol = 0.80;
+    let sbAudioCtx = null;
+    let sbMasterGain = null;
+    const sbActiveNodes = {};
+    const sbLocalInit = { done: false };
+
+    function ensureSbAudioCtx() {
+      if (sbAudioCtx) return;
+      sbAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      sbMasterGain = sbAudioCtx.createGain();
+      sbMasterGain.gain.value = sbMasterVol;
+      sbMasterGain.connect(sbAudioCtx.destination);
+    }
+
+    function saveSoundLibrary() {
+      return setDoc(soundLibraryRef, {
+        sounds: sbSounds,
+        categories: sbCategories,
+      });
+    }
+
+    // Listen for real-time sound library changes from Firebase
+    onSnapshot(soundLibraryRef, (snap) => {
+      const d = snap.data();
+      if (!d) {
+        // First time — try migrating from localStorage (StreamBoard data)
+        if (!sbLocalInit.done) {
+          sbLocalInit.done = true;
+          migrateFromLocalStorage();
+        }
+        return;
+      }
+      sbSounds = d.sounds || [];
+      sbCategories = (d.categories && d.categories.length) ? d.categories : DEFAULT_CATS.slice();
+      renderSbCatBar();
+      renderSbGrid();
+    });
+
+    function migrateFromLocalStorage() {
+      try {
+        const raw = localStorage.getItem('streamboard_sounds');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length) {
+            // Only migrate URL-based sounds (skip base64 data sounds — too large for Firestore)
+            sbSounds = parsed.filter(s => s.url && s.url.startsWith('http')).map(s => ({
+              id: s.id,
+              name: s.name || 'Untitled',
+              cat: s.cat || 'cat1',
+              url: s.url,
+              trim: typeof s.trim === 'number' ? s.trim : 1,
+              fav: !!s.fav,
+            }));
+          }
+        }
+        const rawCats = localStorage.getItem('streamboard_cats');
+        if (rawCats) {
+          const parsed = JSON.parse(rawCats);
+          if (Array.isArray(parsed) && parsed.length) sbCategories = parsed;
+        }
+      } catch (e) { /* ignore parse errors */ }
+      if (sbSounds.length) {
+        saveSoundLibrary().then(() => showToast('Migrated ' + sbSounds.length + ' sounds to cloud'));
+      }
+      renderSbCatBar();
+      renderSbGrid();
+    }
+
+    function renderSbCatBar() {
+      const bar = document.getElementById('sbCatBar');
+      let html = '<button class="sb-cat-btn' + (sbActiveCat === 'all' ? ' active' : '') + '" data-cat="all" onclick="sbSetCat(\'all\')">ALL</button>';
+      sbCategories.forEach(c => {
+        html += '<button class="sb-cat-btn' + (sbActiveCat === c.id ? ' active' : '') + '" data-cat="' + esc(c.id) + '" onclick="sbSetCat(\'' + esc(c.id) + '\')">' + esc(c.name).toUpperCase() + '</button>';
+      });
+      bar.innerHTML = html;
+      // Populate category select in add modal
+      const sel = document.getElementById('sbFCat');
+      if (sel) {
+        const cur = sel.value;
+        sel.innerHTML = sbCategories.map(c => '<option value="' + esc(c.id) + '">' + esc(c.name) + '</option>').join('');
+        if (cur) sel.value = cur;
+      }
+    }
+
+    function renderSbGrid() {
+      const grid = document.getElementById('sbGrid');
+      const countEl = document.getElementById('sbSoundCount');
+      let pool = sbActiveCat === 'all' ? sbSounds : sbSounds.filter(s => s.cat === sbActiveCat);
+      if (sbSearchQ) {
+        const q = sbSearchQ.toLowerCase();
+        pool = pool.filter(s => s.name.toLowerCase().includes(q));
+      }
+      countEl.textContent = pool.length + '/' + sbSounds.length + ' sounds';
+      if (!pool.length) {
+        grid.innerHTML = '<div class="sb-empty">' + (sbSounds.length ? 'No sounds match filter.' : 'No sounds yet. Tap + ADD or IMPORT.') + '</div>';
+        return;
+      }
+      grid.innerHTML = pool.map(s => {
+        const ci = sbCategories.findIndex(c => c.id === s.cat) + 1;
+        return '<div class="sb-card' + (sbActiveNodes[s.id] ? ' playing' : '') + '" data-id="' + esc(s.id) + '" data-ci="' + ci + '">' +
+          '<span class="sb-label">' + esc(s.name) + '</span>' +
+          '<div class="sb-progress" id="sbpb-' + esc(s.id) + '"></div>' +
+          '</div>';
+      }).join('');
+
+      // Attach event listeners
+      grid.querySelectorAll('.sb-card').forEach(card => {
+        let timer = null;
+        card.addEventListener('pointerdown', (e) => {
+          timer = setTimeout(() => { timer = null; sbOpenCtx(card.dataset.id, e.clientX, e.clientY); }, 500);
+        });
+        card.addEventListener('pointerup', () => {
+          if (timer) { clearTimeout(timer); timer = null; sbTogglePlay(card.dataset.id); }
+        });
+        card.addEventListener('pointercancel', () => { clearTimeout(timer); timer = null; });
+        card.addEventListener('contextmenu', (e) => { e.preventDefault(); sbOpenCtx(card.dataset.id, e.clientX, e.clientY); });
+      });
+    }
+
+    window.sbSetCat = function(cat) {
+      sbActiveCat = cat;
+      renderSbCatBar();
+      renderSbGrid();
+    };
+
+    document.getElementById('sbSearch').addEventListener('input', (e) => {
+      sbSearchQ = e.target.value.trim();
+      renderSbGrid();
+    });
+
+    document.getElementById('sbVolSlider').addEventListener('input', (e) => {
+      sbMasterVol = e.target.value / 100;
+      document.getElementById('sbVolLabel').textContent = e.target.value + '%';
+      if (sbMasterGain) sbMasterGain.gain.value = sbMasterVol;
+    });
+
+    /* --- Playback --- */
+    const sbBufferCache = new Map();
+
+    async function sbFetchAndDecode(url) {
+      if (sbBufferCache.has(url)) return sbBufferCache.get(url);
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const arr = await resp.arrayBuffer();
+      ensureSbAudioCtx();
+      const buf = await sbAudioCtx.decodeAudioData(arr);
+      sbBufferCache.set(url, buf);
+      return buf;
+    }
+
+    window.sbTogglePlay = function(id) {
+      if (sbActiveNodes[id]) { sbStopSound(id); return; }
+      sbPlaySound(id);
+    };
+
+    async function sbPlaySound(id) {
+      const s = sbSounds.find(x => x.id === id);
+      if (!s || !s.url) { showToast('No audio URL'); return; }
+      ensureSbAudioCtx();
+      if (sbAudioCtx.state === 'suspended') await sbAudioCtx.resume();
+      sbStopSound(id);
+      const card = document.querySelector('.sb-card[data-id="' + id + '"]');
+      const pb = document.getElementById('sbpb-' + id);
+      const trimGain = typeof s.trim === 'number' ? s.trim : 1;
+      try {
+        const buf = await sbFetchAndDecode(s.url);
+        const src = sbAudioCtx.createBufferSource();
+        src.buffer = buf;
+        const gain = sbAudioCtx.createGain();
+        gain.gain.value = trimGain;
+        src.connect(gain).connect(sbMasterGain);
+        src.start(0);
+        sbActiveNodes[id] = { source: src, startTime: sbAudioCtx.currentTime, duration: buf.duration };
+        if (card) card.classList.add('playing');
+        // Also trigger overlay playback via Firestore
+        triggerFirestoreSound(s.url, trimGain * sbMasterVol);
+        // Progress bar
+        function tick() {
+          if (!sbActiveNodes[id]) return;
+          const pct = Math.min((sbAudioCtx.currentTime - sbActiveNodes[id].startTime) / buf.duration * 100, 100);
+          if (pb) pb.style.width = pct + '%';
+          if (pct < 100) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+        src.onended = () => {
+          if (card) card.classList.remove('playing');
+          if (pb) pb.style.width = '0%';
+          delete sbActiveNodes[id];
+        };
+      } catch (e) {
+        showToast('Playback error: ' + e.message);
+        if (card) card.classList.remove('playing');
+      }
+    }
+
+    function sbStopSound(id) {
+      if (sbActiveNodes[id]) {
+        try { sbActiveNodes[id].source.stop(); } catch (e) {}
+        delete sbActiveNodes[id];
+      }
+      const card = document.querySelector('.sb-card[data-id="' + id + '"]');
+      if (card) card.classList.remove('playing');
+      const pb = document.getElementById('sbpb-' + id);
+      if (pb) pb.style.width = '0%';
+    }
+
+    window.sbStopAll = function() {
+      Object.keys(sbActiveNodes).forEach(id => sbStopSound(id));
+      triggerFirestoreStop();
+      showToast('All sounds stopped');
+    };
+
+    /* --- Firestore sound trigger (for overlay) --- */
     function triggerFirestoreSound(url, volume) {
       setDoc(soundTriggerRef, {
         file: url,
@@ -406,37 +748,187 @@
       }).catch(() => {});
     }
 
-    const sbIframe = document.getElementById("soundsIframe");
-    sbIframe.addEventListener("load", () => {
-      try {
-        const iw = sbIframe.contentWindow;
-        // Wrap playSound to also trigger overlay via Firestore
-        const origPlay = iw.playSound;
-        if (typeof origPlay === "function") {
-          iw.playSound = function(id) {
-            origPlay.call(iw, id);
-            const s = iw.sounds && iw.sounds.find(x => x.id === id);
-            if (s) {
-              const url = s.url || s.data;
-              const vol = (typeof s.trim === "number" ? s.trim : 1) * (iw.masterVolume || 0.8);
-              if (url && url.startsWith("http")) {
-                triggerFirestoreSound(url, vol);
-              }
-            }
-          };
+    /* --- Add/Edit Sound Modal --- */
+    window.openSoundModal = function(id) {
+      sbEditingId = id || null;
+      document.getElementById('sbModalTitle').textContent = id ? 'Edit Sound' : 'Add Sound';
+      document.getElementById('sbFName').value = '';
+      document.getElementById('sbFUrl').value = '';
+      document.getElementById('sbFCat').value = sbCategories[0]?.id || 'cat1';
+      document.getElementById('sbFTrim').value = 100;
+      document.getElementById('sbFTrimLabel').textContent = '100%';
+      if (id) {
+        const s = sbSounds.find(x => x.id === id);
+        if (s) {
+          document.getElementById('sbFName').value = s.name;
+          document.getElementById('sbFUrl').value = s.url || '';
+          document.getElementById('sbFCat').value = s.cat || 'cat1';
+          const trimPct = Math.round((typeof s.trim === 'number' ? s.trim : 1) * 100);
+          document.getElementById('sbFTrim').value = trimPct;
+          document.getElementById('sbFTrimLabel').textContent = trimPct + '%';
         }
-        // Wrap stopAll to also trigger overlay stop
-        const origStop = iw.stopAll;
-        if (typeof origStop === "function") {
-          iw.stopAll = function() {
-            origStop.call(iw);
-            triggerFirestoreStop();
-          };
-        }
-      } catch (e) {
-        // Cross-origin or load error — fall back silently
       }
+      document.getElementById('sbModalOverlay').classList.add('open');
+      setTimeout(() => document.getElementById('sbFName').focus(), 100);
+    };
+
+    window.closeSoundModal = function() {
+      document.getElementById('sbModalOverlay').classList.remove('open');
+      sbEditingId = null;
+    };
+
+    document.getElementById('sbFTrim').addEventListener('input', (e) => {
+      document.getElementById('sbFTrimLabel').textContent = e.target.value + '%';
     });
+
+    window.saveSoundEntry = function() {
+      const name = document.getElementById('sbFName').value.trim();
+      const url = document.getElementById('sbFUrl').value.trim();
+      const cat = document.getElementById('sbFCat').value;
+      const trim = parseInt(document.getElementById('sbFTrim').value) / 100;
+      if (!name) { showToast('Enter a sound name'); return; }
+      if (!url) { showToast('Enter an audio URL'); return; }
+      if (sbEditingId) {
+        const idx = sbSounds.findIndex(s => s.id === sbEditingId);
+        if (idx >= 0) {
+          sbSounds[idx] = { ...sbSounds[idx], name, url, cat, trim };
+        }
+      } else {
+        sbSounds.push({
+          id: 'snd_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+          name, url, cat, trim, fav: false,
+        });
+      }
+      saveSoundLibrary().then(() => {
+        showToast(sbEditingId ? 'Sound updated' : 'Sound added');
+        closeSoundModal();
+      }).catch(() => showToast('Error saving'));
+    };
+
+    /* --- Context Menu --- */
+    function sbOpenCtx(id, x, y) {
+      sbCtxTargetId = id;
+      const menu = document.getElementById('sbCtxMenu');
+      menu.classList.add('open');
+      menu.style.left = Math.min(x, window.innerWidth - 160) + 'px';
+      menu.style.top = Math.min(y, window.innerHeight - 140) + 'px';
+    }
+
+    document.addEventListener('pointerdown', (e) => {
+      if (!e.target.closest('#sbCtxMenu')) document.getElementById('sbCtxMenu').classList.remove('open');
+    });
+
+    window.sbCtxEdit = function() {
+      document.getElementById('sbCtxMenu').classList.remove('open');
+      openSoundModal(sbCtxTargetId);
+    };
+
+    window.sbCtxAdjustVol = function() {
+      document.getElementById('sbCtxMenu').classList.remove('open');
+      openSoundModal(sbCtxTargetId);
+      // Focus the trim slider
+      setTimeout(() => document.getElementById('sbFTrim').focus(), 200);
+    };
+
+    window.sbCtxDelete = function() {
+      document.getElementById('sbCtxMenu').classList.remove('open');
+      const s = sbSounds.find(x => x.id === sbCtxTargetId);
+      if (!s) return;
+      if (!confirm('Delete "' + s.name + '"?')) return;
+      sbSounds = sbSounds.filter(x => x.id !== sbCtxTargetId);
+      saveSoundLibrary().then(() => showToast('Sound deleted')).catch(() => showToast('Error'));
+    };
+
+    /* --- Import from GitHub Repo --- */
+    const AUDIO_EXTS = ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac', 'opus', 'weba', 'mp4'];
+    let importFiles = [];
+
+    window.importFromRepo = function() {
+      document.getElementById('importStatus').textContent = '';
+      document.getElementById('importFileList').innerHTML = '';
+      document.getElementById('importAddBtn').style.display = 'none';
+      document.getElementById('importScanBtn').style.display = '';
+      importFiles = [];
+      document.getElementById('sbImportOverlay').classList.add('open');
+    };
+
+    window.closeImportModal = function() {
+      document.getElementById('sbImportOverlay').classList.remove('open');
+    };
+
+    window.scanRepo = async function() {
+      const user = document.getElementById('importUser').value.trim();
+      const repo = document.getElementById('importRepo').value.trim();
+      const branch = document.getElementById('importBranch').value.trim() || 'main';
+      if (!user || !repo) { document.getElementById('importStatus').textContent = 'Enter username and repo'; return; }
+      document.getElementById('importStatus').textContent = 'Scanning...';
+      try {
+        const resp = await fetch('https://api.github.com/repos/' + user + '/' + repo + '/git/trees/' + branch + '?recursive=1');
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const data = await resp.json();
+        const audioFiles = (data.tree || []).filter(item => {
+          if (item.type !== 'blob') return false;
+          const ext = item.path.split('.').pop().toLowerCase();
+          return AUDIO_EXTS.includes(ext);
+        });
+        importFiles = audioFiles.map(item => {
+          const filename = item.path.split('/').pop();
+          const nameNoExt = filename.replace(/\.[^.]+$/, '');
+          return {
+            name: nameNoExt,
+            filename: filename,
+            url: 'https://raw.githubusercontent.com/' + user + '/' + repo + '/' + branch + '/' + encodeURIComponent(item.path).replace(/%2F/g, '/'),
+          };
+        });
+        document.getElementById('importStatus').textContent = importFiles.length + ' audio files found';
+        const existingUrls = new Set(sbSounds.map(s => s.url));
+        document.getElementById('importFileList').innerHTML = importFiles.map((f, i) => {
+          const isDupe = existingUrls.has(f.url);
+          return '<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--bg-elev);border-radius:6px;margin-bottom:3px;font-size:0.75rem;' + (isDupe ? 'opacity:0.4;' : '') + '">' +
+            '<input type="checkbox" data-idx="' + i + '" ' + (isDupe ? '' : 'checked') + ' style="accent-color:var(--accent);width:14px;height:14px;" />' +
+            '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + esc(f.filename) + '">' + esc(f.name) + '</span>' +
+            (isDupe ? '<span style="font-size:0.65rem;color:var(--muted);">exists</span>' : '') +
+            '</div>';
+        }).join('');
+        document.getElementById('importScanBtn').style.display = 'none';
+        document.getElementById('importAddBtn').style.display = '';
+      } catch (e) {
+        document.getElementById('importStatus').textContent = 'Error: ' + e.message;
+      }
+    };
+
+    window.addSelectedImports = function() {
+      const checks = document.querySelectorAll('#importFileList input[type="checkbox"]:checked');
+      let added = 0;
+      checks.forEach(ch => {
+        const idx = parseInt(ch.dataset.idx);
+        const f = importFiles[idx];
+        if (!f) return;
+        sbSounds.push({
+          id: 'snd_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7) + '_' + idx,
+          name: f.name,
+          url: f.url,
+          cat: 'cat6',
+          trim: 1,
+          fav: false,
+        });
+        added++;
+      });
+      if (added) {
+        saveSoundLibrary().then(() => {
+          showToast(added + ' sound(s) imported');
+          closeImportModal();
+        }).catch(() => showToast('Error saving'));
+      } else {
+        showToast('No sounds selected');
+      }
+    };
+
+    // Enable audio context on first interaction
+    document.addEventListener('click', () => {
+      ensureSbAudioCtx();
+      if (sbAudioCtx && sbAudioCtx.state === 'suspended') sbAudioCtx.resume();
+    }, { once: true });
 
     /* ========== Tabs ========== */
     const TAB_IDS = ['select', 'manage', 'style', 'sounds'];
@@ -445,16 +937,7 @@
       document.getElementById("panelSelect").classList.toggle("active", tab === "select");
       document.getElementById("panelManage").classList.toggle("active", tab === "manage");
       document.getElementById("panelStyle").classList.toggle("active", tab === "style");
-      // Sounds tab: show/hide the full-screen iframe overlay
-      const iframeWrap = document.getElementById("soundsIframeWrap");
-      const backBtn = document.getElementById("soundsBackBtn");
-      if (tab === "sounds") {
-        iframeWrap.classList.add("active");
-        backBtn.classList.add("active");
-      } else {
-        iframeWrap.classList.remove("active");
-        backBtn.classList.remove("active");
-      }
+      document.getElementById("panelSounds").classList.toggle("active", tab === "sounds");
       if (tab === "style") renderStylePanel();
     };
 
@@ -471,8 +954,8 @@
       };
       var sortedByName = roster.slice().sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
       var sortedByNum = roster.slice().sort(function(a, b) { return (parseInt(a.number) || 0) - (parseInt(b.number) || 0); });
-      byName.innerHTML = sortedByName.map(function(p) { return btnHtml(p, esc(p.name) + (p.grade ? ' · ' + esc(p.grade) : '')); }).join("");
-      byNum.innerHTML = sortedByNum.map(function(p) { return btnHtml(p, '#' + esc(p.number) + ' ' + esc(p.name) + (p.grade ? ' · ' + esc(p.grade) : '')); }).join("");
+      byName.innerHTML = sortedByName.map(function(p) { return btnHtml(p, esc(p.name) + (p.grade ? ' \u00b7 ' + esc(p.grade) : '')); }).join("");
+      byNum.innerHTML = sortedByNum.map(function(p) { return btnHtml(p, '#' + esc(p.number) + ' ' + esc(p.name) + (p.grade ? ' \u00b7 ' + esc(p.grade) : '')); }).join("");
     }
 
     function renderRosterList() {
@@ -512,7 +995,6 @@
 
     function renderStylePanel() {
       const container = document.getElementById('styleFields');
-      // Load global styles
       const g = currentStyles._global || {};
       globalOffsetX = g.offsetX || 0;
       globalOffsetY = g.offsetY || 0;
@@ -684,6 +1166,10 @@
     function slugify(s) {
       return (s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
     }
+
+    // Init
+    renderSbCatBar();
+    renderSbGrid();
   </script>
 </body>
 </html>
