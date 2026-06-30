@@ -168,7 +168,6 @@
       -webkit-tap-highlight-color: transparent; outline: none;
       white-space: nowrap; text-overflow: ellipsis;
     }
-    .sb-card:active { transform: scale(0.97); }
     .sb-card.dragging { opacity: 0.5; transform: scale(0.95); }
     .sb-card.drag-over { border-top: 3px solid var(--accent); }
     .sb-card .sb-label { font-size: 1.02rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; display: block; }
@@ -533,6 +532,8 @@
     const sbActiveNodes = {};
     const sbLocalInit = { done: false };
     let sbDragSrcId = null;
+    let sbLastTapId = null;
+    let sbLastTapTime = 0;
 
     function ensureSbAudioCtx() {
       if (sbAudioCtx) return;
@@ -633,33 +634,7 @@
           '</div>';
       }).join('');
 
-      // Attach event listeners
-      grid.querySelectorAll('.sb-card').forEach(card => {
-        let lastTapTime = 0;
-        card.addEventListener('click', (e) => {
-          const now = Date.now();
-          if (now - lastTapTime < 400) {
-            // Double-tap: toggle play/stop
-            e.preventDefault();
-            const id = card.dataset.id;
-            if (sbActiveNodes[id]) {
-              sbStopSound(id);
-            } else {
-              sbSelectedSoundId = id;
-              renderSbGrid();
-              sbPlaySound(id);
-            }
-            lastTapTime = 0;
-            return;
-          }
-          lastTapTime = now;
-          sbSelectSound(card.dataset.id);
-        });
-        card.addEventListener('contextmenu', (e) => { e.preventDefault(); sbOpenCtx(card.dataset.id, e.clientX, e.clientY); });
-      });
-
-      // Touch/pointer-based reorder (2s hold to drag)
-      initTouchDrag(grid);
+      // Event listeners attached via delegation in initSbGridEvents (once)
     }
 
     window.sbSetCat = function(cat) {
@@ -747,6 +722,45 @@
         touchSrcId = null;
       });
     }
+
+    // Attach grid events ONCE via delegation (not per render)
+    (function initSbGridEvents() {
+      const grid = document.getElementById('sbGrid');
+
+      // Click/double-tap delegation
+      grid.addEventListener('click', (e) => {
+        const card = e.target.closest('.sb-card');
+        if (!card) return;
+        const id = card.dataset.id;
+        const now = Date.now();
+        if (sbLastTapId === id && now - sbLastTapTime < 400) {
+          e.preventDefault();
+          sbLastTapId = null;
+          sbLastTapTime = 0;
+          if (sbActiveNodes[id]) {
+            sbStopSound(id);
+          } else {
+            sbSelectedSoundId = id;
+            sbPlaySound(id);
+          }
+          return;
+        }
+        sbLastTapId = id;
+        sbLastTapTime = now;
+        sbSelectSound(id);
+      });
+
+      // Context menu delegation
+      grid.addEventListener('contextmenu', (e) => {
+        const card = e.target.closest('.sb-card');
+        if (!card) return;
+        e.preventDefault();
+        sbOpenCtx(card.dataset.id, e.clientX, e.clientY);
+      });
+
+      // Touch drag (2s hold to reorder)
+      initTouchDrag(grid);
+    })();
 
     document.getElementById('sbSearch').addEventListener('input', (e) => {
       sbSearchQ = e.target.value.trim();
