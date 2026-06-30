@@ -168,6 +168,8 @@
       white-space: nowrap; text-overflow: ellipsis;
     }
     .sb-card:active { transform: scale(0.97); }
+    .sb-card.dragging { opacity: 0.5; transform: scale(0.95); }
+    .sb-card.drag-over { border-top: 3px solid var(--accent); }
     .sb-card .sb-label { font-size: 1.02rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; display: block; }
     .sb-card.selected { border-color: var(--accent); background: var(--bg-elev-2); box-shadow: 0 0 0 1px var(--accent), 0 2px 12px var(--accent-glow); }
     .sb-card .sb-progress { position: absolute; bottom: 0; left: 0; height: 2px; background: var(--accent); width: 0%; transition: width 0.1s linear; }
@@ -529,6 +531,7 @@
     let sbMasterGain = null;
     const sbActiveNodes = {};
     const sbLocalInit = { done: false };
+    let sbDragSrcId = null;
 
     function ensureSbAudioCtx() {
       if (sbAudioCtx) return;
@@ -631,16 +634,59 @@
 
       // Attach event listeners
       grid.querySelectorAll('.sb-card').forEach(card => {
-        let timer = null;
+        let holdTimer = null;
+        let isDragging = false;
+        card.setAttribute('draggable', 'false');
+
         card.addEventListener('pointerdown', (e) => {
-          timer = setTimeout(() => { timer = null; sbOpenCtx(card.dataset.id, e.clientX, e.clientY); }, 500);
+          isDragging = false;
+          holdTimer = setTimeout(() => {
+            holdTimer = null;
+            isDragging = true;
+            card.setAttribute('draggable', 'true');
+            sbDragSrcId = card.dataset.id;
+            card.classList.add('dragging');
+            showToast('Drag to reorder');
+          }, 2000);
         });
+
+        card.addEventListener('pointermove', (e) => {
+          if (holdTimer && (Math.abs(e.movementX) > 5 || Math.abs(e.movementY) > 5)) {
+            clearTimeout(holdTimer); holdTimer = null;
+          }
+        });
+
         card.addEventListener('pointerup', () => {
-          if (timer) { clearTimeout(timer); timer = null; sbSelectSound(card.dataset.id); }
+          if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; sbSelectSound(card.dataset.id); }
+          if (isDragging) { isDragging = false; card.setAttribute('draggable', 'false'); card.classList.remove('dragging'); }
         });
-        card.addEventListener('pointercancel', () => { clearTimeout(timer); timer = null; });
+
+        card.addEventListener('pointercancel', () => {
+          clearTimeout(holdTimer); holdTimer = null;
+          if (isDragging) { isDragging = false; card.setAttribute('draggable', 'false'); card.classList.remove('dragging'); }
+        });
+
+        card.addEventListener('dragstart', (e) => {
+          if (!isDragging) { e.preventDefault(); return; }
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', card.dataset.id);
+        });
+
+        card.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; card.classList.add('drag-over'); });
+        card.addEventListener('dragleave', () => { card.classList.remove('drag-over'); });
+        card.addEventListener('drop', (e) => {
+          e.preventDefault(); card.classList.remove('drag-over');
+          const fromId = e.dataTransfer.getData('text/plain');
+          const toId = card.dataset.id;
+          if (fromId && toId && fromId !== toId) sbReorderSound(fromId, toId);
+        });
+        card.addEventListener('dragend', () => { card.classList.remove('dragging'); card.setAttribute('draggable', 'false'); sbDragSrcId = null; });
+
         card.addEventListener('contextmenu', (e) => { e.preventDefault(); sbOpenCtx(card.dataset.id, e.clientX, e.clientY); });
       });
+
+      // Touch-based reorder (since HTML drag doesn't work well on mobile)
+      initTouchDrag(grid);
     }
 
     window.sbSetCat = function(cat) {
@@ -648,6 +694,86 @@
       renderSbCatBar();
       renderSbGrid();
     };
+
+    function sbReorderSound(fromId, toId) {
+      const fromIdx = sbSounds.findIndex(s => s.id === fromId);
+      const toIdx = sbSounds.findIndex(s => s.id === toId);
+      if (fromIdx < 0 || toIdx < 0 || fromIdx === toIdx) return;
+      const item = sbSounds.splice(fromIdx, 1)[0];
+      sbSounds.splice(toIdx, 0, item);
+      saveSoundLibrary().then(() => showToast('Order saved')).catch(() => showToast('Error saving order'));
+      renderSbGrid();
+    }
+
+    function initTouchDrag(grid) {
+      let touchSrcId = null;
+      let touchHoldTimer = null;
+      let touchDragging = false;
+      let touchClone = null;
+      let touchStartX = 0, touchStartY = 0;
+
+      grid.addEventListener('touchstart', (e) => {
+        const card = e.target.closest('.sb-card');
+        if (!card) return;
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        touchHoldTimer = setTimeout(() => {
+          touchHoldTimer = null;
+          touchDragging = true;
+          touchSrcId = card.dataset.id;
+          card.classList.add('dragging');
+          // Create floating clone
+          touchClone = card.cloneNode(true);
+          touchClone.style.cssText = 'position:fixed;z-index:999;pointer-events:none;opacity:0.8;width:' + card.offsetWidth + 'px;transform:scale(1.05);';
+          touchClone.style.left = (e.touches[0].clientX - card.offsetWidth / 2) + 'px';
+          touchClone.style.top = (e.touches[0].clientY - 20) + 'px';
+          document.body.appendChild(touchClone);
+          showToast('Drag to reorder');
+          e.preventDefault();
+        }, 2000);
+      }, { passive: false });
+
+      grid.addEventListener('touchmove', (e) => {
+        if (touchHoldTimer) {
+          const dx = Math.abs(e.touches[0].clientX - touchStartX);
+          const dy = Math.abs(e.touches[0].clientY - touchStartY);
+          if (dx > 10 || dy > 10) { clearTimeout(touchHoldTimer); touchHoldTimer = null; }
+        }
+        if (!touchDragging) return;
+        e.preventDefault();
+        if (touchClone) {
+          touchClone.style.left = (e.touches[0].clientX - touchClone.offsetWidth / 2) + 'px';
+          touchClone.style.top = (e.touches[0].clientY - 20) + 'px';
+        }
+        // Highlight drop target
+        grid.querySelectorAll('.sb-card').forEach(c => c.classList.remove('drag-over'));
+        const el = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
+        const target = el ? el.closest('.sb-card') : null;
+        if (target && target.dataset.id !== touchSrcId) target.classList.add('drag-over');
+      }, { passive: false });
+
+      grid.addEventListener('touchend', (e) => {
+        clearTimeout(touchHoldTimer); touchHoldTimer = null;
+        if (!touchDragging) return;
+        touchDragging = false;
+        if (touchClone) { touchClone.remove(); touchClone = null; }
+        grid.querySelectorAll('.sb-card').forEach(c => { c.classList.remove('dragging'); c.classList.remove('drag-over'); });
+        const el = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+        const target = el ? el.closest('.sb-card') : null;
+        if (target && touchSrcId && target.dataset.id !== touchSrcId) {
+          sbReorderSound(touchSrcId, target.dataset.id);
+        }
+        touchSrcId = null;
+      });
+
+      grid.addEventListener('touchcancel', () => {
+        clearTimeout(touchHoldTimer); touchHoldTimer = null;
+        touchDragging = false;
+        if (touchClone) { touchClone.remove(); touchClone = null; }
+        grid.querySelectorAll('.sb-card').forEach(c => { c.classList.remove('dragging'); c.classList.remove('drag-over'); });
+        touchSrcId = null;
+      });
+    }
 
     document.getElementById('sbSearch').addEventListener('input', (e) => {
       sbSearchQ = e.target.value.trim();
