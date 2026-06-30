@@ -165,6 +165,7 @@
       background: var(--bg-elev); border: 1.5px solid var(--border); border-radius: 8px;
       padding: 12px 8px; cursor: pointer; position: relative; overflow: hidden;
       user-select: none; -webkit-user-select: none; transition: all 0.15s;
+      -webkit-tap-highlight-color: transparent; outline: none;
       white-space: nowrap; text-overflow: ellipsis;
     }
     .sb-card:active { transform: scale(0.97); }
@@ -634,58 +635,30 @@
 
       // Attach event listeners
       grid.querySelectorAll('.sb-card').forEach(card => {
-        let holdTimer = null;
-        let isDragging = false;
-        card.setAttribute('draggable', 'false');
-
-        card.addEventListener('pointerdown', (e) => {
-          isDragging = false;
-          holdTimer = setTimeout(() => {
-            holdTimer = null;
-            isDragging = true;
-            card.setAttribute('draggable', 'true');
-            sbDragSrcId = card.dataset.id;
-            card.classList.add('dragging');
-            showToast('Drag to reorder');
-          }, 2000);
-        });
-
-        card.addEventListener('pointermove', (e) => {
-          if (holdTimer && (Math.abs(e.movementX) > 5 || Math.abs(e.movementY) > 5)) {
-            clearTimeout(holdTimer); holdTimer = null;
+        let lastTapTime = 0;
+        card.addEventListener('click', (e) => {
+          const now = Date.now();
+          if (now - lastTapTime < 400) {
+            // Double-tap: toggle play/stop
+            e.preventDefault();
+            const id = card.dataset.id;
+            if (sbActiveNodes[id]) {
+              sbStopSound(id);
+            } else {
+              sbSelectedSoundId = id;
+              renderSbGrid();
+              sbPlaySound(id);
+            }
+            lastTapTime = 0;
+            return;
           }
+          lastTapTime = now;
+          sbSelectSound(card.dataset.id);
         });
-
-        card.addEventListener('pointerup', () => {
-          if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; sbSelectSound(card.dataset.id); }
-          if (isDragging) { isDragging = false; card.setAttribute('draggable', 'false'); card.classList.remove('dragging'); }
-        });
-
-        card.addEventListener('pointercancel', () => {
-          clearTimeout(holdTimer); holdTimer = null;
-          if (isDragging) { isDragging = false; card.setAttribute('draggable', 'false'); card.classList.remove('dragging'); }
-        });
-
-        card.addEventListener('dragstart', (e) => {
-          if (!isDragging) { e.preventDefault(); return; }
-          e.dataTransfer.effectAllowed = 'move';
-          e.dataTransfer.setData('text/plain', card.dataset.id);
-        });
-
-        card.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; card.classList.add('drag-over'); });
-        card.addEventListener('dragleave', () => { card.classList.remove('drag-over'); });
-        card.addEventListener('drop', (e) => {
-          e.preventDefault(); card.classList.remove('drag-over');
-          const fromId = e.dataTransfer.getData('text/plain');
-          const toId = card.dataset.id;
-          if (fromId && toId && fromId !== toId) sbReorderSound(fromId, toId);
-        });
-        card.addEventListener('dragend', () => { card.classList.remove('dragging'); card.setAttribute('draggable', 'false'); sbDragSrcId = null; });
-
         card.addEventListener('contextmenu', (e) => { e.preventDefault(); sbOpenCtx(card.dataset.id, e.clientX, e.clientY); });
       });
 
-      // Touch-based reorder (since HTML drag doesn't work well on mobile)
+      // Touch/pointer-based reorder (2s hold to drag)
       initTouchDrag(grid);
     }
 
