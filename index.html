@@ -639,11 +639,16 @@
         card.addEventListener('click', (e) => {
           const now = Date.now();
           if (now - lastTapTime < 400) {
-            // Double-tap: play the sound
+            // Double-tap: toggle play/stop
             e.preventDefault();
-            sbSelectedSoundId = card.dataset.id;
-            renderSbGrid();
-            sbPlaySound(card.dataset.id);
+            const id = card.dataset.id;
+            if (sbActiveNodes[id]) {
+              sbStopSound(id);
+            } else {
+              sbSelectedSoundId = id;
+              renderSbGrid();
+              sbPlaySound(id);
+            }
             lastTapTime = 0;
             return;
           }
