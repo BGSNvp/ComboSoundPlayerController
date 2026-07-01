@@ -33,13 +33,20 @@
     .status.connected { background: var(--success); color: #0a0d1a; }
     .status.offline { background: var(--danger); color: #fff; }
 
-    /* Tabs */
+    /* Main Tabs */
     .tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
     .tab { flex: 1; min-width: 0; padding: 10px 4px; border: 2px solid var(--border); border-radius: 10px; background: var(--bg-elev); color: var(--muted); font: inherit; font-size: 0.78rem; font-weight: 600; cursor: pointer; text-align: center; transition: all 0.2s; white-space: nowrap; }
     .tab.active { border-color: var(--accent); color: var(--text); background: var(--bg-elev-2); }
 
     .panel { display: none; }
     .panel.active { display: block; }
+
+    /* Sub-tabs (inside Player tab) */
+    .sub-tabs { display: flex; gap: 3px; margin-bottom: 12px; }
+    .sub-tab { flex: 1; padding: 7px 4px; border: 1.5px solid var(--border); border-radius: 8px; background: transparent; color: var(--muted); font: inherit; font-size: 0.7rem; font-weight: 600; cursor: pointer; text-align: center; transition: all 0.2s; white-space: nowrap; }
+    .sub-tab.active { border-color: var(--accent); color: var(--accent); background: rgba(108, 140, 255, 0.1); }
+    .sub-panel { display: none; }
+    .sub-panel.active { display: block; }
 
     /* Player list — two side-by-side columns (by name / by number) */
     .select-columns { display: flex; gap: 8px; }
@@ -209,6 +216,19 @@
     .sb-ctx-item:active { background: rgba(255,255,255,0.06); }
     .sb-ctx-item.red { color: var(--danger); }
 
+    /* ScoreStream panel */
+    .ss-section { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+    .ss-section h4 { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent); margin-bottom: 10px; }
+    .ss-field { margin-bottom: 10px; }
+    .ss-field label { display: block; font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 3px; }
+    .ss-field input { width: 100%; padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; font-size: 0.85rem; outline: none; }
+    .ss-field input:focus { border-color: var(--accent); }
+    .ss-row { display: flex; gap: 8px; }
+    .ss-row .ss-field { flex: 1; }
+    .ss-preview { border: 1.5px solid var(--border); border-radius: 8px; overflow: hidden; background: #000; margin-top: 10px; position: relative; min-height: 100px; }
+    .ss-preview iframe { border: none; display: block; transform-origin: top left; }
+    .ss-preview .ss-empty { color: var(--muted); text-align: center; padding: 30px 10px; font-size: 0.8rem; }
+
     /* Portrait phone optimizations */
     @media (max-width: 420px) {
       body { padding: 12px; padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
@@ -233,14 +253,21 @@
   </div>
 
   <div class="tabs">
-    <button class="tab active" onclick="switchTab('select')">Select</button>
-    <button class="tab" onclick="switchTab('manage')">Roster</button>
-    <button class="tab" onclick="switchTab('style')">Style</button>
+    <button class="tab active" onclick="switchTab('player')">Player</button>
     <button class="tab" onclick="switchTab('sounds')">Sounds</button>
+    <button class="tab" onclick="switchTab('scorestream')">ScoreStream</button>
   </div>
 
-  <!-- SELECT tab -->
-  <div id="panelSelect" class="panel active">
+  <!-- PLAYER tab (contains sub-tabs) -->
+  <div id="panelPlayer" class="panel active">
+    <div class="sub-tabs">
+      <button class="sub-tab active" onclick="switchSubTab('select')">Select</button>
+      <button class="sub-tab" onclick="switchSubTab('manage')">Roster</button>
+      <button class="sub-tab" onclick="switchSubTab('style')">Style</button>
+    </div>
+
+    <!-- Sub-panel: Select -->
+    <div id="subSelect" class="sub-panel active">
     <div class="select-columns">
       <div class="select-col">
         <div class="col-header">By Name</div>
@@ -252,10 +279,10 @@
       </div>
     </div>
     <div id="emptySelect" class="empty-msg" style="display:none;">No players yet. Go to Roster tab to add some.</div>
-  </div>
+    </div>
 
-  <!-- MANAGE ROSTER tab -->
-  <div id="panelManage" class="panel">
+    <!-- Sub-panel: Roster -->
+    <div id="subManage" class="sub-panel">
     <div id="rosterList"></div>
     <div id="emptyManage" class="empty-msg" style="display:none;">No players yet.</div>
     <h3 style="margin:20px 0 12px; font-size:1rem;" id="formTitle">Add Player</h3>
@@ -300,13 +327,14 @@
         <button type="button" class="btn btn-outline" onclick="cancelEdit()" id="cancelBtn" style="display:none;">Cancel</button>
       </div>
     </form>
-  </div>
+    </div>
 
-  <!-- STYLE tab -->
-  <div id="panelStyle" class="panel">
+    <!-- Sub-panel: Style -->
+    <div id="subStyle" class="sub-panel">
     <div id="styleFields"></div>
     <button class="btn btn-accent btn-save-styles" onclick="saveStyles()">Apply Styles</button>
-  </div>
+    </div>
+  </div><!-- end panelPlayer -->
 
   <!-- SOUNDS tab (native, Firebase-synced) -->
   <div id="panelSounds" class="panel">
@@ -370,6 +398,68 @@
     </div>
   </div>
 
+  <!-- SCORESTREAM tab -->
+  <div id="panelScorestream" class="panel">
+    <div class="ss-section">
+      <h4>Source URL</h4>
+      <div class="ss-field">
+        <label>URL (webpage, embed, or image)</label>
+        <input type="text" id="ssUrl" placeholder="https://scorestream.com/..." />
+      </div>
+      <button class="btn btn-accent" onclick="ssApplyUrl()" style="width:100%;margin-top:6px;">Load URL</button>
+    </div>
+
+    <div class="ss-section">
+      <h4>Size</h4>
+      <div class="ss-row">
+        <div class="ss-field">
+          <label>Width (px)</label>
+          <input type="number" id="ssWidth" value="1280" min="100" max="3840" />
+        </div>
+        <div class="ss-field">
+          <label>Height (px)</label>
+          <input type="number" id="ssHeight" value="720" min="100" max="2160" />
+        </div>
+      </div>
+      <div class="ss-field">
+        <label>Scale (%)</label>
+        <input type="number" id="ssScale" value="100" min="10" max="300" />
+      </div>
+    </div>
+
+    <div class="ss-section">
+      <h4>Crop (px to trim from each edge)</h4>
+      <div class="ss-row">
+        <div class="ss-field">
+          <label>Top</label>
+          <input type="number" id="ssCropTop" value="0" min="0" />
+        </div>
+        <div class="ss-field">
+          <label>Bottom</label>
+          <input type="number" id="ssCropBottom" value="0" min="0" />
+        </div>
+      </div>
+      <div class="ss-row">
+        <div class="ss-field">
+          <label>Left</label>
+          <input type="number" id="ssCropLeft" value="0" min="0" />
+        </div>
+        <div class="ss-field">
+          <label>Right</label>
+          <input type="number" id="ssCropRight" value="0" min="0" />
+        </div>
+      </div>
+      <button class="btn btn-outline" onclick="ssApplyCrop()" style="width:100%;margin-top:6px;">Apply Size &amp; Crop</button>
+    </div>
+
+    <div class="ss-section">
+      <h4>Preview</h4>
+      <div class="ss-preview" id="ssPreview">
+        <div class="ss-empty">Enter a URL above and click Load</div>
+      </div>
+    </div>
+  </div>
+
   <!-- Bottom bar: Show Player (7s) / Hide -->
   <div class="bottom-bar" id="bottomBarPlayer">
     <button class="btn-show" onclick="showOverlay()">&#9654; Show Player (7s)</button>
@@ -378,6 +468,10 @@
   <div class="bottom-bar" id="bottomBarSound" style="display:none;">
     <button class="btn-show" onclick="sbPlaySelected()">&#9654; Play Sound</button>
     <button class="btn-hide" onclick="sbStopAll()">Stop</button>
+  </div>
+  <div class="bottom-bar" id="bottomBarSS" style="display:none;">
+    <button class="btn-show" onclick="ssShowOverlay()">&#9654; Show ScoreStream</button>
+    <button class="btn-hide" onclick="ssHideOverlay()">Hide</button>
   </div>
 
   <div id="toast" class="toast"></div>
@@ -399,6 +493,7 @@
     const rosterRef = doc(db, "playerOverlay", "roster");
     const soundTriggerRef = doc(db, "soundboard", "trigger");
     const soundLibraryRef = doc(db, "soundboard", "library");
+    const scorestreamRef = doc(db, "scorestream", "config");
 
     let roster = [];
     let activeId = "";
@@ -1058,16 +1153,24 @@
     }, { once: true });
 
     /* ========== Tabs ========== */
-    const TAB_IDS = ['select', 'manage', 'style', 'sounds'];
+    const MAIN_TABS = ['player', 'sounds', 'scorestream'];
     window.switchTab = function(tab) {
-      document.querySelectorAll(".tab").forEach((t, i) => t.classList.toggle("active", TAB_IDS[i] === tab));
-      document.getElementById("panelSelect").classList.toggle("active", tab === "select");
-      document.getElementById("panelManage").classList.toggle("active", tab === "manage");
-      document.getElementById("panelStyle").classList.toggle("active", tab === "style");
+      document.querySelectorAll(".tab").forEach((t, i) => t.classList.toggle("active", MAIN_TABS[i] === tab));
+      document.getElementById("panelPlayer").classList.toggle("active", tab === "player");
       document.getElementById("panelSounds").classList.toggle("active", tab === "sounds");
-      document.getElementById("bottomBarPlayer").style.display = (tab === "sounds") ? "none" : "flex";
+      document.getElementById("panelScorestream").classList.toggle("active", tab === "scorestream");
+      document.getElementById("bottomBarPlayer").style.display = (tab === "player") ? "flex" : "none";
       document.getElementById("bottomBarSound").style.display = (tab === "sounds") ? "flex" : "none";
-      if (tab === "style") renderStylePanel();
+      document.getElementById("bottomBarSS").style.display = (tab === "scorestream") ? "flex" : "none";
+    };
+
+    const SUB_TABS = ['select', 'manage', 'style'];
+    window.switchSubTab = function(sub) {
+      document.querySelectorAll(".sub-tab").forEach((t, i) => t.classList.toggle("active", SUB_TABS[i] === sub));
+      document.getElementById("subSelect").classList.toggle("active", sub === "select");
+      document.getElementById("subManage").classList.toggle("active", sub === "manage");
+      document.getElementById("subStyle").classList.toggle("active", sub === "style");
+      if (sub === "style") renderStylePanel();
     };
 
     /* ========== Render functions ========== */
@@ -1276,6 +1379,77 @@
       videoFiles = files;
       populateVideoSelect(files);
     });
+
+    /* ========== ScoreStream ========== */
+    let ssConfig = { url: '', width: 1280, height: 720, scale: 100, cropTop: 0, cropBottom: 0, cropLeft: 0, cropRight: 0, visible: false };
+
+    onSnapshot(scorestreamRef, (snap) => {
+      const d = snap.data();
+      if (d) {
+        ssConfig = { ...ssConfig, ...d };
+        document.getElementById('ssUrl').value = ssConfig.url || '';
+        document.getElementById('ssWidth').value = ssConfig.width || 1280;
+        document.getElementById('ssHeight').value = ssConfig.height || 720;
+        document.getElementById('ssScale').value = ssConfig.scale || 100;
+        document.getElementById('ssCropTop').value = ssConfig.cropTop || 0;
+        document.getElementById('ssCropBottom').value = ssConfig.cropBottom || 0;
+        document.getElementById('ssCropLeft').value = ssConfig.cropLeft || 0;
+        document.getElementById('ssCropRight').value = ssConfig.cropRight || 0;
+        ssRenderPreview();
+      }
+    });
+
+    function ssSaveConfig() {
+      return setDoc(scorestreamRef, ssConfig);
+    }
+
+    window.ssApplyUrl = function() {
+      const url = document.getElementById('ssUrl').value.trim();
+      if (!url) { showToast('Enter a URL'); return; }
+      ssConfig.url = url;
+      ssSaveConfig().then(() => { showToast('URL saved'); ssRenderPreview(); }).catch(() => showToast('Error saving'));
+    };
+
+    window.ssApplyCrop = function() {
+      ssConfig.width = parseInt(document.getElementById('ssWidth').value) || 1280;
+      ssConfig.height = parseInt(document.getElementById('ssHeight').value) || 720;
+      ssConfig.scale = parseInt(document.getElementById('ssScale').value) || 100;
+      ssConfig.cropTop = parseInt(document.getElementById('ssCropTop').value) || 0;
+      ssConfig.cropBottom = parseInt(document.getElementById('ssCropBottom').value) || 0;
+      ssConfig.cropLeft = parseInt(document.getElementById('ssCropLeft').value) || 0;
+      ssConfig.cropRight = parseInt(document.getElementById('ssCropRight').value) || 0;
+      ssSaveConfig().then(() => { showToast('Settings saved'); ssRenderPreview(); }).catch(() => showToast('Error saving'));
+    };
+
+    window.ssShowOverlay = function() {
+      ssConfig.visible = true;
+      ssSaveConfig().then(() => showToast('ScoreStream shown')).catch(() => showToast('Error'));
+    };
+
+    window.ssHideOverlay = function() {
+      ssConfig.visible = false;
+      ssSaveConfig().then(() => showToast('ScoreStream hidden')).catch(() => showToast('Error'));
+    };
+
+    function ssRenderPreview() {
+      const preview = document.getElementById('ssPreview');
+      if (!ssConfig.url) {
+        preview.innerHTML = '<div class="ss-empty">Enter a URL above and click Load</div>';
+        return;
+      }
+      const cw = ssConfig.width - ssConfig.cropLeft - ssConfig.cropRight;
+      const ch = ssConfig.height - ssConfig.cropTop - ssConfig.cropBottom;
+      const containerWidth = preview.clientWidth || 300;
+      const displayScale = Math.min(containerWidth / cw, 1);
+      preview.innerHTML =
+        '<div style="width:' + (cw * displayScale) + 'px;height:' + (ch * displayScale) + 'px;overflow:hidden;position:relative;">' +
+          '<iframe src="' + esc(ssConfig.url) + '" ' +
+            'style="position:absolute;width:' + ssConfig.width + 'px;height:' + ssConfig.height + 'px;' +
+            'top:' + (-ssConfig.cropTop * displayScale) + 'px;left:' + (-ssConfig.cropLeft * displayScale) + 'px;' +
+            'transform:scale(' + displayScale + ');transform-origin:top left;" ' +
+            'sandbox="allow-scripts allow-same-origin" loading="lazy"></iframe>' +
+        '</div>';
+    }
 
     /* ========== Helpers ========== */
     function showToast(msg) {
