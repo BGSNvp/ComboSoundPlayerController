@@ -401,12 +401,16 @@
   <!-- SCORESTREAM tab -->
   <div id="panelScorestream" class="panel">
     <div class="ss-section">
-      <h4>Source URL</h4>
+      <h4>Embed Code</h4>
       <div class="ss-field">
-        <label>URL (webpage, embed, or image)</label>
+        <label>Paste ScoreStream widget code or any HTML embed</label>
+        <textarea id="ssEmbed" rows="4" placeholder='<div class="scorestream-widget-container" ...></div><script ...></script>' style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font:inherit;font-size:0.78rem;resize:vertical;outline:none;font-family:monospace;"></textarea>
+      </div>
+      <div class="ss-field" style="margin-top:6px;">
+        <label>Or enter a URL instead</label>
         <input type="text" id="ssUrl" placeholder="https://scorestream.com/..." />
       </div>
-      <button class="btn btn-accent" onclick="ssApplyUrl()" style="width:100%;margin-top:6px;">Load URL</button>
+      <button class="btn btn-accent" onclick="ssSaveSource()" style="width:100%;margin-top:6px;">Save &amp; Load</button>
     </div>
 
     <div class="ss-section">
@@ -455,7 +459,7 @@
     <div class="ss-section">
       <h4>Preview</h4>
       <div class="ss-preview" id="ssPreview">
-        <div class="ss-empty">Enter a URL above and click Load</div>
+        <div class="ss-empty">Paste embed code or URL above and click Save &amp; Load</div>
       </div>
     </div>
   </div>
@@ -1381,12 +1385,13 @@
     });
 
     /* ========== ScoreStream ========== */
-    let ssConfig = { url: '', width: 1280, height: 720, scale: 100, cropTop: 0, cropBottom: 0, cropLeft: 0, cropRight: 0, visible: false };
+    let ssConfig = { url: '', embed: '', width: 1280, height: 720, scale: 100, cropTop: 0, cropBottom: 0, cropLeft: 0, cropRight: 0, visible: false };
 
     onSnapshot(scorestreamRef, (snap) => {
       const d = snap.data();
       if (d) {
         ssConfig = { ...ssConfig, ...d };
+        document.getElementById('ssEmbed').value = ssConfig.embed || '';
         document.getElementById('ssUrl').value = ssConfig.url || '';
         document.getElementById('ssWidth').value = ssConfig.width || 1280;
         document.getElementById('ssHeight').value = ssConfig.height || 720;
@@ -1403,11 +1408,13 @@
       return setDoc(scorestreamRef, ssConfig);
     }
 
-    window.ssApplyUrl = function() {
+    window.ssSaveSource = function() {
+      const embed = document.getElementById('ssEmbed').value.trim();
       const url = document.getElementById('ssUrl').value.trim();
-      if (!url) { showToast('Enter a URL'); return; }
+      if (!embed && !url) { showToast('Enter embed code or a URL'); return; }
+      ssConfig.embed = embed;
       ssConfig.url = url;
-      ssSaveConfig().then(() => { showToast('URL saved'); ssRenderPreview(); }).catch(() => showToast('Error saving'));
+      ssSaveConfig().then(() => { showToast('Saved'); ssRenderPreview(); }).catch(() => showToast('Error saving'));
     };
 
     window.ssApplyCrop = function() {
@@ -1433,21 +1440,36 @@
 
     function ssRenderPreview() {
       const preview = document.getElementById('ssPreview');
-      if (!ssConfig.url) {
-        preview.innerHTML = '<div class="ss-empty">Enter a URL above and click Load</div>';
+      const hasEmbed = ssConfig.embed && ssConfig.embed.trim();
+      const hasUrl = ssConfig.url && ssConfig.url.trim();
+      if (!hasEmbed && !hasUrl) {
+        preview.innerHTML = '<div class="ss-empty">Paste embed code or URL above and click Save &amp; Load</div>';
         return;
       }
       const cw = ssConfig.width - ssConfig.cropLeft - ssConfig.cropRight;
       const ch = ssConfig.height - ssConfig.cropTop - ssConfig.cropBottom;
       const containerWidth = preview.clientWidth || 300;
       const displayScale = Math.min(containerWidth / cw, 1);
+
+      let iframeHtml;
+      if (hasEmbed) {
+        const srcdoc = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{margin:0;overflow:hidden;}</style></head><body>' +
+          ssConfig.embed.replace(/"/g, '&quot;') + '</body></html>';
+        iframeHtml = '<iframe srcdoc="' + srcdoc + '" ' +
+          'style="position:absolute;width:' + ssConfig.width + 'px;height:' + ssConfig.height + 'px;' +
+          'top:' + (-ssConfig.cropTop * displayScale) + 'px;left:' + (-ssConfig.cropLeft * displayScale) + 'px;' +
+          'transform:scale(' + displayScale + ');transform-origin:top left;border:none;" ' +
+          'loading="lazy"></iframe>';
+      } else {
+        iframeHtml = '<iframe src="' + esc(hasUrl) + '" ' +
+          'style="position:absolute;width:' + ssConfig.width + 'px;height:' + ssConfig.height + 'px;' +
+          'top:' + (-ssConfig.cropTop * displayScale) + 'px;left:' + (-ssConfig.cropLeft * displayScale) + 'px;' +
+          'transform:scale(' + displayScale + ');transform-origin:top left;border:none;" ' +
+          'sandbox="allow-scripts allow-same-origin" loading="lazy"></iframe>';
+      }
       preview.innerHTML =
         '<div style="width:' + (cw * displayScale) + 'px;height:' + (ch * displayScale) + 'px;overflow:hidden;position:relative;">' +
-          '<iframe src="' + esc(ssConfig.url) + '" ' +
-            'style="position:absolute;width:' + ssConfig.width + 'px;height:' + ssConfig.height + 'px;' +
-            'top:' + (-ssConfig.cropTop * displayScale) + 'px;left:' + (-ssConfig.cropLeft * displayScale) + 'px;' +
-            'transform:scale(' + displayScale + ');transform-origin:top left;" ' +
-            'sandbox="allow-scripts allow-same-origin" loading="lazy"></iframe>' +
+          iframeHtml +
         '</div>';
     }
 
