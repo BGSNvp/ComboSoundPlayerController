@@ -25,7 +25,7 @@
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       -webkit-tap-highlight-color: transparent; min-height: 100vh;
     }
-    body { padding: 16px; padding-bottom: calc(80px + env(safe-area-inset-bottom)); max-width: 560px; margin: 0; }
+    body { padding: 16px; padding-bottom: calc(16px + env(safe-area-inset-bottom)); max-width: 560px; margin: 0; }
 
     .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
     .header h1 { font-size: 1.3rem; font-weight: 700; }
@@ -33,8 +33,11 @@
     .status.connected { background: var(--success); color: #0a0d1a; }
     .status.offline { background: var(--danger); color: #fff; }
 
+    /* Sticky top region: tabs + action buttons */
+    .topbar { position: sticky; top: 0; z-index: 60; background: var(--bg); padding-top: 8px; margin-bottom: 12px; }
+
     /* Main Tabs */
-    .tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; position: sticky; top: 0; z-index: 50; background: var(--bg); padding: 8px 0; }
+    .tabs { display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap; }
     .tab { flex: 1; min-width: 0; padding: 10px 4px; border: 2px solid var(--border); border-radius: 10px; background: var(--bg-elev); color: var(--muted); font: inherit; font-size: 0.78rem; font-weight: 600; cursor: pointer; text-align: center; transition: all 0.2s; white-space: nowrap; }
     .tab.active { border-color: var(--accent); color: var(--text); background: var(--bg-elev-2); }
 
@@ -42,7 +45,7 @@
     .panel.active { display: block; }
 
     /* Sub-tabs (inside Player tab) */
-    .sub-tabs { display: flex; gap: 3px; margin-bottom: 12px; position: sticky; top: 53px; z-index: 45; background: var(--bg); padding: 4px 0; }
+    .sub-tabs { display: flex; gap: 3px; margin-bottom: 12px; position: sticky; top: 106px; z-index: 45; background: var(--bg); padding: 4px 0; }
     .sub-tab { flex: 1; padding: 7px 4px; border: 1.5px solid var(--border); border-radius: 8px; background: transparent; color: var(--muted); font: inherit; font-size: 0.7rem; font-weight: 600; cursor: pointer; text-align: center; transition: all 0.2s; white-space: nowrap; }
     .sub-tab.active { border-color: var(--accent); color: var(--accent); background: rgba(108, 140, 255, 0.1); }
     .sub-panel { display: none; }
@@ -86,14 +89,8 @@
 
     .empty-msg { color: var(--muted); text-align: center; padding: 40px 20px; font-size: 0.9rem; }
 
-    /* Bottom bar */
-    .bottom-bar {
-      position: fixed; bottom: 0; left: 0; right: 0;
-      max-width: 560px; margin-left: 0; margin-right: auto;
-      background: rgba(15, 18, 32, 0.95); backdrop-filter: blur(10px);
-      border-top: 1px solid var(--border);
-      padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); display: flex; gap: 10px;
-    }
+    /* Action bar (now in the sticky top region) */
+    .bottom-bar { display: flex; gap: 10px; }
     .bottom-bar button { flex: 1; padding: 14px; border: none; border-radius: 10px; font: inherit; font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
     .bottom-bar button:active { opacity: 0.7; }
     .btn-show { background: var(--success); color: #0a0d1a; }
@@ -242,7 +239,6 @@
       .player-col-list { gap: 2px; }
       .select-columns { gap: 4px; }
       .style-field { padding: 10px; }
-      .bottom-bar { padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); }
       .bottom-bar button { padding: 12px; font-size: 0.85rem; }
     }
   </style>
@@ -253,10 +249,26 @@
     <span id="statusBadge" class="status offline">Connecting</span>
   </div>
 
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('player')">Player</button>
-    <button class="tab" onclick="switchTab('sounds')">Sounds</button>
-    <button class="tab" onclick="switchTab('scorestream')">ScoreStream</button>
+  <div class="topbar">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('player')">Player</button>
+      <button class="tab" onclick="switchTab('sounds')">Sounds</button>
+      <button class="tab" onclick="switchTab('scorestream')">ScoreStream</button>
+    </div>
+
+    <!-- Action buttons (Show/Hide, Play/Stop) pinned at top with the tabs -->
+    <div class="bottom-bar" id="bottomBarPlayer">
+      <button class="btn-show" onclick="showOverlay()">&#9654; Show Player (7s)</button>
+      <button class="btn-hide" onclick="hideOverlay()">Hide</button>
+    </div>
+    <div class="bottom-bar" id="bottomBarSound" style="display:none;">
+      <button class="btn-show" onclick="sbPlaySelected()">&#9654; Play Sound</button>
+      <button class="btn-hide" onclick="sbStopAll()">Stop</button>
+    </div>
+    <div class="bottom-bar" id="bottomBarSS" style="display:none;">
+      <button class="btn-show" onclick="ssShowOverlay()">&#9654; Show ScoreStream</button>
+      <button class="btn-hide" onclick="ssHideOverlay()">Hide</button>
+    </div>
   </div>
 
   <!-- PLAYER tab (contains sub-tabs) -->
@@ -478,20 +490,6 @@
         <div class="ss-empty">Paste embed code or URL above and click Save &amp; Load</div>
       </div>
     </div>
-  </div>
-
-  <!-- Bottom bar: Show Player (7s) / Hide -->
-  <div class="bottom-bar" id="bottomBarPlayer">
-    <button class="btn-show" onclick="showOverlay()">&#9654; Show Player (7s)</button>
-    <button class="btn-hide" onclick="hideOverlay()">Hide</button>
-  </div>
-  <div class="bottom-bar" id="bottomBarSound" style="display:none;">
-    <button class="btn-show" onclick="sbPlaySelected()">&#9654; Play Sound</button>
-    <button class="btn-hide" onclick="sbStopAll()">Stop</button>
-  </div>
-  <div class="bottom-bar" id="bottomBarSS" style="display:none;">
-    <button class="btn-show" onclick="ssShowOverlay()">&#9654; Show ScoreStream</button>
-    <button class="btn-hide" onclick="ssHideOverlay()">Hide</button>
   </div>
 
   <div id="toast" class="toast"></div>
