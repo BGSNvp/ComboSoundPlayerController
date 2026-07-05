@@ -404,11 +404,11 @@
       <h4>Embed Code</h4>
       <div class="ss-field">
         <label>Paste ScoreStream widget code or any HTML embed</label>
-        <textarea id="ssEmbed" rows="4" placeholder='<div class="scorestream-widget-container" ...></div><script ...></script>' style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font:inherit;font-size:0.78rem;resize:vertical;outline:none;font-family:monospace;"></textarea>
+        <textarea id="ssEmbed" rows="4" oninput="if(this.value.trim()){document.getElementById('ssUrl').value='';}" placeholder='<div class="scorestream-widget-container" ...></div><script ...></script>' style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font:inherit;font-size:0.78rem;resize:vertical;outline:none;font-family:monospace;"></textarea>
       </div>
       <div class="ss-field" style="margin-top:6px;">
-        <label>Or enter a URL instead</label>
-        <input type="text" id="ssUrl" placeholder="https://scorestream.com/..." />
+        <label>Or enter a URL instead (clears embed code above)</label>
+        <input type="text" id="ssUrl" oninput="if(this.value.trim()){document.getElementById('ssEmbed').value='';}" placeholder="https://scorestream.com/..." />
       </div>
       <button class="btn btn-accent" onclick="ssSaveSource()" style="width:100%;margin-top:6px;">Save &amp; Load</button>
     </div>
@@ -1412,8 +1412,8 @@
       const embed = document.getElementById('ssEmbed').value.trim();
       const url = document.getElementById('ssUrl').value.trim();
       if (!embed && !url) { showToast('Enter embed code or a URL'); return; }
-      ssConfig.embed = embed;
-      ssConfig.url = url;
+      if (url) { ssConfig.url = url; ssConfig.embed = ''; document.getElementById('ssEmbed').value = ''; }
+      else { ssConfig.embed = embed; ssConfig.url = ''; document.getElementById('ssUrl').value = ''; }
       ssSaveConfig().then(() => { showToast('Saved'); ssRenderPreview(); }).catch(() => showToast('Error saving'));
     };
 
