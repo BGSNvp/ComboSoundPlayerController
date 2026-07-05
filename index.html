@@ -457,6 +457,21 @@
     </div>
 
     <div class="ss-section">
+      <h4>Position on screen</h4>
+      <div class="ss-row">
+        <div class="ss-field">
+          <label>Vertical (px) &mdash; + lowers, &minus; raises</label>
+          <input type="number" id="ssOffsetY" value="0" />
+        </div>
+        <div class="ss-field">
+          <label>Horizontal (px) &mdash; + right, &minus; left</label>
+          <input type="number" id="ssOffsetX" value="0" />
+        </div>
+      </div>
+      <button class="btn btn-outline" onclick="ssApplyPosition()" style="width:100%;margin-top:6px;">Apply Position</button>
+    </div>
+
+    <div class="ss-section">
       <h4>Preview</h4>
       <div class="ss-preview" id="ssPreview">
         <div class="ss-empty">Paste embed code or URL above and click Save &amp; Load</div>
@@ -1385,7 +1400,7 @@
     });
 
     /* ========== ScoreStream ========== */
-    let ssConfig = { url: '', embed: '', width: 1280, height: 720, scale: 100, cropTop: 0, cropBottom: 0, cropLeft: 0, cropRight: 0, visible: false };
+    let ssConfig = { url: '', embed: '', width: 1280, height: 720, scale: 100, cropTop: 0, cropBottom: 0, cropLeft: 0, cropRight: 0, offsetX: 0, offsetY: 0, visible: false };
 
     onSnapshot(scorestreamRef, (snap) => {
       const d = snap.data();
@@ -1400,6 +1415,8 @@
         document.getElementById('ssCropBottom').value = ssConfig.cropBottom || 0;
         document.getElementById('ssCropLeft').value = ssConfig.cropLeft || 0;
         document.getElementById('ssCropRight').value = ssConfig.cropRight || 0;
+        document.getElementById('ssOffsetX').value = ssConfig.offsetX || 0;
+        document.getElementById('ssOffsetY').value = ssConfig.offsetY || 0;
         ssRenderPreview();
       }
     });
@@ -1426,6 +1443,12 @@
       ssConfig.cropLeft = parseInt(document.getElementById('ssCropLeft').value) || 0;
       ssConfig.cropRight = parseInt(document.getElementById('ssCropRight').value) || 0;
       ssSaveConfig().then(() => { showToast('Settings saved'); ssRenderPreview(); }).catch(() => showToast('Error saving'));
+    };
+
+    window.ssApplyPosition = function() {
+      ssConfig.offsetX = parseInt(document.getElementById('ssOffsetX').value) || 0;
+      ssConfig.offsetY = parseInt(document.getElementById('ssOffsetY').value) || 0;
+      ssSaveConfig().then(() => showToast('Position saved')).catch(() => showToast('Error saving'));
     };
 
     window.ssShowOverlay = function() {
