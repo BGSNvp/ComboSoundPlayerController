@@ -466,18 +466,18 @@
           <input type="number" id="ssCropRight" value="0" min="0" />
         </div>
       </div>
-      <button class="btn btn-outline" onclick="ssApplyCrop()" style="width:100%;margin-top:6px;">Apply Size &amp; Crop</button>
+      <button class="btn btn-outline" onclick="ssApplyCrop()" style="width:100%;margin-top:6px;">Apply Size, Crop &amp; Position</button>
     </div>
 
     <div class="ss-section">
       <h4>Position on screen</h4>
       <div class="ss-row">
         <div class="ss-field">
-          <label>Vertical (px) &mdash; + lowers, &minus; raises</label>
+          <label>Y Position (px) &mdash; + lowers, &minus; raises</label>
           <input type="number" id="ssOffsetY" value="0" />
         </div>
         <div class="ss-field">
-          <label>Horizontal (px) &mdash; + right, &minus; left</label>
+          <label>X Position (px) &mdash; + right, &minus; left</label>
           <input type="number" id="ssOffsetX" value="0" />
         </div>
       </div>
@@ -1424,16 +1424,7 @@
       return setDoc(scorestreamRef, ssConfig);
     }
 
-    window.ssSaveSource = function() {
-      const embed = document.getElementById('ssEmbed').value.trim();
-      const url = document.getElementById('ssUrl').value.trim();
-      if (!embed && !url) { showToast('Enter embed code or a URL'); return; }
-      if (url) { ssConfig.url = url; ssConfig.embed = ''; document.getElementById('ssEmbed').value = ''; }
-      else { ssConfig.embed = embed; ssConfig.url = ''; document.getElementById('ssUrl').value = ''; }
-      ssSaveConfig().then(() => { showToast('Saved'); ssRenderPreview(); }).catch(() => showToast('Error saving'));
-    };
-
-    window.ssApplyCrop = function() {
+    function ssReadControls() {
       ssConfig.width = parseInt(document.getElementById('ssWidth').value) || 1280;
       ssConfig.height = parseInt(document.getElementById('ssHeight').value) || 720;
       ssConfig.scale = parseInt(document.getElementById('ssScale').value) || 100;
@@ -1441,13 +1432,28 @@
       ssConfig.cropBottom = parseInt(document.getElementById('ssCropBottom').value) || 0;
       ssConfig.cropLeft = parseInt(document.getElementById('ssCropLeft').value) || 0;
       ssConfig.cropRight = parseInt(document.getElementById('ssCropRight').value) || 0;
+      ssConfig.offsetX = parseInt(document.getElementById('ssOffsetX').value) || 0;
+      ssConfig.offsetY = parseInt(document.getElementById('ssOffsetY').value) || 0;
+    }
+
+    window.ssSaveSource = function() {
+      const embed = document.getElementById('ssEmbed').value.trim();
+      const url = document.getElementById('ssUrl').value.trim();
+      if (!embed && !url) { showToast('Enter embed code or a URL'); return; }
+      if (url) { ssConfig.url = url; ssConfig.embed = ''; document.getElementById('ssEmbed').value = ''; }
+      else { ssConfig.embed = embed; ssConfig.url = ''; document.getElementById('ssUrl').value = ''; }
+      ssReadControls();
+      ssSaveConfig().then(() => { showToast('Saved'); ssRenderPreview(); }).catch(() => showToast('Error saving'));
+    };
+
+    window.ssApplyCrop = function() {
+      ssReadControls();
       ssSaveConfig().then(() => { showToast('Settings saved'); ssRenderPreview(); }).catch(() => showToast('Error saving'));
     };
 
     window.ssApplyPosition = function() {
-      ssConfig.offsetX = parseInt(document.getElementById('ssOffsetX').value) || 0;
-      ssConfig.offsetY = parseInt(document.getElementById('ssOffsetY').value) || 0;
-      ssSaveConfig().then(() => showToast('Position saved')).catch(() => showToast('Error saving'));
+      ssReadControls();
+      ssSaveConfig().then(() => { showToast('Position saved'); ssRenderPreview(); }).catch(() => showToast('Error saving'));
     };
 
     window.ssShowOverlay = function() {
@@ -1468,10 +1474,24 @@
         preview.innerHTML = '<div class="ss-empty">Paste embed code or URL above and click Save &amp; Load</div>';
         return;
       }
-      const cw = ssConfig.width - ssConfig.cropLeft - ssConfig.cropRight;
-      const ch = ssConfig.height - ssConfig.cropTop - ssConfig.cropBottom;
+      const screenW = 1920;
+      const screenH = 1080;
+      const cropLeft = ssConfig.cropLeft || 0;
+      const cropRight = ssConfig.cropRight || 0;
+      const cropTop = ssConfig.cropTop || 0;
+      const cropBottom = ssConfig.cropBottom || 0;
+      const scoreboardScale = (ssConfig.scale || 100) / 100;
+      const cw = Math.max(1, (ssConfig.width || 1280) - cropLeft - cropRight);
+      const ch = Math.max(1, (ssConfig.height || 720) - cropTop - cropBottom);
       const containerWidth = preview.clientWidth || 300;
-      const displayScale = Math.min(containerWidth / cw, 1);
+      const screenScale = Math.min(containerWidth / screenW, 1);
+      const previewW = screenW * screenScale;
+      const previewH = screenH * screenScale;
+      const offsetX = ssConfig.offsetX || 0;
+      const offsetY = ssConfig.offsetY || 0;
+      const iframeScale = scoreboardScale * screenScale;
+      const wrapW = cw * scoreboardScale * screenScale;
+      const wrapH = ch * scoreboardScale * screenScale;
 
       let iframeHtml;
       if (hasEmbed) {
@@ -1479,19 +1499,22 @@
           ssConfig.embed.replace(/"/g, '&quot;') + '</body></html>';
         iframeHtml = '<iframe srcdoc="' + srcdoc + '" ' +
           'style="position:absolute;width:' + ssConfig.width + 'px;height:' + ssConfig.height + 'px;' +
-          'top:' + (-ssConfig.cropTop * displayScale) + 'px;left:' + (-ssConfig.cropLeft * displayScale) + 'px;' +
-          'transform:scale(' + displayScale + ');transform-origin:top left;border:none;" ' +
+          'top:' + (-cropTop * iframeScale) + 'px;left:' + (-cropLeft * iframeScale) + 'px;' +
+          'transform:scale(' + iframeScale + ');transform-origin:top left;border:none;" ' +
           'loading="lazy"></iframe>';
       } else {
         iframeHtml = '<iframe src="' + esc(hasUrl) + '" ' +
           'style="position:absolute;width:' + ssConfig.width + 'px;height:' + ssConfig.height + 'px;' +
-          'top:' + (-ssConfig.cropTop * displayScale) + 'px;left:' + (-ssConfig.cropLeft * displayScale) + 'px;' +
-          'transform:scale(' + displayScale + ');transform-origin:top left;border:none;" ' +
+          'top:' + (-cropTop * iframeScale) + 'px;left:' + (-cropLeft * iframeScale) + 'px;' +
+          'transform:scale(' + iframeScale + ');transform-origin:top left;border:none;" ' +
           'sandbox="allow-scripts allow-same-origin" loading="lazy"></iframe>';
       }
       preview.innerHTML =
-        '<div style="width:' + (cw * displayScale) + 'px;height:' + (ch * displayScale) + 'px;overflow:hidden;position:relative;">' +
-          iframeHtml +
+        '<div style="color:var(--muted);font-size:0.72rem;margin-bottom:6px;">Preview shows position on a 1920x1080 screen</div>' +
+        '<div style="width:' + previewW + 'px;height:' + previewH + 'px;overflow:hidden;position:relative;background:#111;border:1px solid var(--border);">' +
+          '<div style="position:absolute;left:' + (offsetX * screenScale) + 'px;top:' + (offsetY * screenScale) + 'px;width:' + wrapW + 'px;height:' + wrapH + 'px;overflow:hidden;">' +
+            iframeHtml +
+          '</div>' +
         '</div>';
     }
 
