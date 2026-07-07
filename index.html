@@ -851,7 +851,7 @@
           sbLastTapId = null;
           sbLastTapTime = 0;
           if (sbActiveNodes[id]) {
-            sbStopSound(id);
+            sbStopSound(id, true);
           } else {
             sbSelectedSoundId = id;
             sbPlaySound(id);
@@ -909,7 +909,7 @@
 
     window.sbPlaySelected = function() {
       if (!sbSelectedSoundId) { showToast('Select a sound first'); return; }
-      if (sbActiveNodes[sbSelectedSoundId]) { sbStopSound(sbSelectedSoundId); return; }
+      if (sbActiveNodes[sbSelectedSoundId]) { sbStopSound(sbSelectedSoundId, true); return; }
       sbPlaySound(sbSelectedSoundId);
     };
 
@@ -918,7 +918,7 @@
       if (!s || !s.url) { showToast('No audio URL'); return; }
       ensureSbAudioCtx();
       if (sbAudioCtx.state === 'suspended') await sbAudioCtx.resume();
-      sbStopSound(id);
+      sbStopSound(id, false);
       const card = document.querySelector('.sb-card[data-id="' + id + '"]');
       const pb = document.getElementById('sbpb-' + id);
       const trimGain = typeof s.trim === 'number' ? s.trim : 1;
@@ -953,7 +953,7 @@
       }
     }
 
-    function sbStopSound(id) {
+    function sbStopSound(id, syncOverlay) {
       if (sbActiveNodes[id]) {
         try { sbActiveNodes[id].source.stop(); } catch (e) {}
         delete sbActiveNodes[id];
@@ -962,10 +962,14 @@
       if (card) card.classList.remove('playing');
       const pb = document.getElementById('sbpb-' + id);
       if (pb) pb.style.width = '0%';
+      if (syncOverlay) {
+        const s = sbSounds.find(x => x.id === id);
+        triggerFirestoreStop(s && s.url ? s.url : '');
+      }
     }
 
     window.sbStopAll = function() {
-      Object.keys(sbActiveNodes).forEach(id => sbStopSound(id));
+      Object.keys(sbActiveNodes).forEach(id => sbStopSound(id, false));
       triggerFirestoreStop();
       showToast('All sounds stopped');
     };
@@ -980,9 +984,9 @@
       }).catch(() => {});
     }
 
-    function triggerFirestoreStop() {
+    function triggerFirestoreStop(url) {
       setDoc(soundTriggerRef, {
-        file: "",
+        file: url || "",
         ts: Date.now(),
         action: "stop"
       }).catch(() => {});
