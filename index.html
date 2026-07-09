@@ -1425,6 +1425,7 @@
     });
 
     function ssSaveConfig() {
+      ssConfig.renderNonce = Date.now();
       return setDoc(scorestreamRef, ssConfig);
     }
 
