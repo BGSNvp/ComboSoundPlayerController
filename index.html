@@ -643,6 +643,7 @@
     let sbAudioCtx = null;
     let sbMasterGain = null;
     const sbActiveNodes = {};
+    const sbPendingPlays = new Map();
     const sbLocalInit = { done: false };
     let sbDragSrcId = null;
     let sbLastTapId = null;
@@ -741,7 +742,7 @@
       }
       grid.innerHTML = pool.map(s => {
         const ci = sbCategories.findIndex(c => c.id === s.cat) + 1;
-        return '<div class="sb-card' + (sbActiveNodes[s.id] ? ' playing' : '') + (s.id === sbSelectedSoundId ? ' selected' : '') + '" data-id="' + esc(s.id) + '" data-ci="' + ci + '">' +
+        return '<div class="sb-card' + ((sbActiveNodes[s.id] || sbPendingPlays.has(s.id)) ? ' playing' : '') + (s.id === sbSelectedSoundId ? ' selected' : '') + '" data-id="' + esc(s.id) + '" data-ci="' + ci + '">' +
           '<span class="sb-label">' + esc(s.name) + '</span>' +
           '<div class="sb-progress" id="sbpb-' + esc(s.id) + '"></div>' +
           '</div>';
@@ -914,22 +915,28 @@
     };
 
     async function sbPlaySound(id) {
+      if (sbPendingPlays.has(id)) return;
       const s = sbSounds.find(x => x.id === id);
       if (!s || !s.url) { showToast('No audio URL'); return; }
       ensureSbAudioCtx();
       if (sbAudioCtx.state === 'suspended') await sbAudioCtx.resume();
       sbStopSound(id, false);
+      const playToken = Date.now() + '_' + Math.random().toString(36).slice(2);
+      sbPendingPlays.set(id, playToken);
       const card = document.querySelector('.sb-card[data-id="' + id + '"]');
       const pb = document.getElementById('sbpb-' + id);
       const trimGain = typeof s.trim === 'number' ? s.trim : 1;
+      if (card) card.classList.add('playing');
       try {
         const buf = await sbFetchAndDecode(s.url);
+        if (sbPendingPlays.get(id) !== playToken) return;
         const src = sbAudioCtx.createBufferSource();
         src.buffer = buf;
         const gain = sbAudioCtx.createGain();
         gain.gain.value = trimGain;
         src.connect(gain).connect(sbMasterGain);
         src.start(0);
+        sbPendingPlays.delete(id);
         sbActiveNodes[id] = { source: src, startTime: sbAudioCtx.currentTime, duration: buf.duration };
         if (card) card.classList.add('playing');
         // Also trigger overlay playback via Firestore
@@ -948,12 +955,14 @@
           delete sbActiveNodes[id];
         };
       } catch (e) {
+        sbPendingPlays.delete(id);
         showToast('Playback error: ' + e.message);
         if (card) card.classList.remove('playing');
       }
     }
 
     function sbStopSound(id, syncOverlay) {
+      sbPendingPlays.delete(id);
       if (sbActiveNodes[id]) {
         try { sbActiveNodes[id].source.stop(); } catch (e) {}
         delete sbActiveNodes[id];
@@ -969,6 +978,7 @@
     }
 
     window.sbStopAll = function() {
+      sbPendingPlays.clear();
       Object.keys(sbActiveNodes).forEach(id => sbStopSound(id, false));
       triggerFirestoreStop();
       showToast('All sounds stopped');
