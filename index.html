@@ -1371,14 +1371,18 @@
 
     async function fetchVideoFiles() {
       try {
-        const resp = await fetch("https://api.github.com/repos/" + REPO_OWNER + "/" + OVERLAY_REPO + "/contents/" + VIDEO_FOLDER);
-        if (!resp.ok) return [];
+        const url = "https://api.github.com/repos/" + REPO_OWNER + "/" + OVERLAY_REPO +
+          "/contents/" + VIDEO_FOLDER + "?t=" + Date.now();
+        const resp = await fetch(url, { cache: "no-store" });
+        if (resp.status === 403) { showToast("GitHub rate limit — try again in a minute"); return videoFiles; }
+        if (!resp.ok) return videoFiles;
         const files = await resp.json();
+        if (!Array.isArray(files)) return videoFiles;
         return files
           .filter(f => f.type === "file" && VIDEO_EXTS.some(ext => f.name.toLowerCase().endsWith(ext)))
           .map(f => ({ name: f.name, url: f.download_url }));
       } catch (e) {
-        return [];
+        return videoFiles;
       }
     }
 
