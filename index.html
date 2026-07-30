@@ -586,6 +586,9 @@
       }
       saveRoster().then(() => {
         showToast(id ? "Player updated" : "Player added");
+        if (id && id === activeId) {
+          setDoc(liveRef, { id: data.id, name: data.name, number: data.number, grade: data.grade, height: data.height, weight: data.weight, video: data.video }, { merge: true }).catch(() => {});
+        }
         cancelEdit();
       }).catch(() => showToast("Error saving"));
       return false;
