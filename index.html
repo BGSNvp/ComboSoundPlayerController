@@ -917,46 +917,39 @@
       sbPlaySound(sbSelectedSoundId);
     };
 
+    // The controller does not play audio itself — the overlay is the only
+    // audio output. Playing here just drives the overlay and shows local
+    // UI feedback (playing state + progress bar) using the clip's duration.
     async function sbPlaySound(id) {
       if (sbPendingPlays.has(id)) return;
       const s = sbSounds.find(x => x.id === id);
       if (!s || !s.url) { showToast('No audio URL'); return; }
-      ensureSbAudioCtx();
-      if (sbAudioCtx.state === 'suspended') await sbAudioCtx.resume();
       sbStopSound(id, false);
+      const trimGain = typeof s.trim === 'number' ? s.trim : 1;
+      // Trigger overlay playback via Firestore (the actual sound output).
+      triggerFirestoreSound(s.url, trimGain * sbMasterVol);
       const playToken = Date.now() + '_' + Math.random().toString(36).slice(2);
       sbPendingPlays.set(id, playToken);
       const card = document.querySelector('.sb-card[data-id="' + id + '"]');
       const pb = document.getElementById('sbpb-' + id);
-      const trimGain = typeof s.trim === 'number' ? s.trim : 1;
       if (card) card.classList.add('playing');
       try {
         const buf = await sbFetchAndDecode(s.url);
         if (sbPendingPlays.get(id) !== playToken) return;
-        const src = sbAudioCtx.createBufferSource();
-        src.buffer = buf;
-        const gain = sbAudioCtx.createGain();
-        gain.gain.value = trimGain;
-        src.connect(gain).connect(sbMasterGain);
-        src.start(0);
         sbPendingPlays.delete(id);
-        sbActiveNodes[id] = { source: src, startTime: sbAudioCtx.currentTime, duration: buf.duration };
+        const duration = buf.duration;
+        const startTime = Date.now();
+        const timer = setTimeout(() => { sbStopSound(id, false); }, duration * 1000);
+        sbActiveNodes[id] = { startTime, duration, timer };
         if (card) card.classList.add('playing');
-        // Also trigger overlay playback via Firestore
-        triggerFirestoreSound(s.url, trimGain * sbMasterVol);
-        // Progress bar
         function tick() {
-          if (!sbActiveNodes[id]) return;
-          const pct = Math.min((sbAudioCtx.currentTime - sbActiveNodes[id].startTime) / buf.duration * 100, 100);
+          const entry = sbActiveNodes[id];
+          if (!entry) return;
+          const pct = Math.min((Date.now() - entry.startTime) / (duration * 1000) * 100, 100);
           if (pb) pb.style.width = pct + '%';
           if (pct < 100) requestAnimationFrame(tick);
         }
         requestAnimationFrame(tick);
-        src.onended = () => {
-          if (card) card.classList.remove('playing');
-          if (pb) pb.style.width = '0%';
-          delete sbActiveNodes[id];
-        };
       } catch (e) {
         sbPendingPlays.delete(id);
         showToast('Playback error: ' + e.message);
@@ -967,7 +960,7 @@
     function sbStopSound(id, syncOverlay) {
       sbPendingPlays.delete(id);
       if (sbActiveNodes[id]) {
-        try { sbActiveNodes[id].source.stop(); } catch (e) {}
+        if (sbActiveNodes[id].timer) clearTimeout(sbActiveNodes[id].timer);
         delete sbActiveNodes[id];
       }
       const card = document.querySelector('.sb-card[data-id="' + id + '"]');
