@@ -258,7 +258,7 @@
 
     <!-- Action buttons (Show/Hide, Play/Stop) pinned at top with the tabs -->
     <div class="bottom-bar" id="bottomBarPlayer">
-      <button class="btn-show" onclick="showOverlay()">&#9654; Show Player (7s)</button>
+      <button class="btn-show" onclick="showOverlay()">&#9654; Show Player (9s)</button>
       <button class="btn-hide" onclick="hideOverlay()">Hide</button>
     </div>
     <div class="bottom-bar" id="bottomBarSound" style="display:none;">
@@ -554,7 +554,7 @@
     /* --- Show overlay for 7 seconds --- */
     window.showOverlay = function() {
       setDoc(liveRef, { visible: true, showTs: Date.now() }, { merge: true }).catch(() => showToast("Error"));
-      showToast("Showing for 7s");
+      showToast("Showing for 9s");
     };
 
     window.hideOverlay = function() {
