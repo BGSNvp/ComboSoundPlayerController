@@ -423,6 +423,10 @@
         <label>Or enter a URL instead (clears embed code above)</label>
         <input type="text" id="ssUrl" oninput="if(this.value.trim()){document.getElementById('ssEmbed').value='';}" placeholder="https://scorestream.com/..." />
       </div>
+      <div class="ss-field" style="margin-top:6px;">
+        <label>Render service URL (optional — for YoloBox; renders as an image)</label>
+        <input type="text" id="ssRenderService" placeholder="https://scorestream-render.onrender.com" />
+      </div>
       <button class="btn btn-accent" onclick="ssSaveSource()" style="width:100%;margin-top:6px;">Save &amp; Load</button>
     </div>
 
@@ -1413,7 +1417,7 @@
     });
 
     /* ========== ScoreStream ========== */
-    let ssConfig = { url: '', embed: '', width: 1280, height: 720, scale: 100, cropTop: 0, cropBottom: 0, cropLeft: 0, cropRight: 0, offsetX: 0, offsetY: 0, visible: false };
+    let ssConfig = { url: '', embed: '', renderService: '', width: 1280, height: 720, scale: 100, cropTop: 0, cropBottom: 0, cropLeft: 0, cropRight: 0, offsetX: 0, offsetY: 0, visible: false };
 
     onSnapshot(scorestreamRef, (snap) => {
       const d = snap.data();
@@ -1421,6 +1425,7 @@
         ssConfig = { ...ssConfig, ...d };
         document.getElementById('ssEmbed').value = ssConfig.embed || '';
         document.getElementById('ssUrl').value = ssConfig.url || '';
+        document.getElementById('ssRenderService').value = ssConfig.renderService || '';
         document.getElementById('ssWidth').value = ssConfig.width || 1280;
         document.getElementById('ssHeight').value = ssConfig.height || 720;
         document.getElementById('ssScale').value = ssConfig.scale || 100;
@@ -1449,6 +1454,7 @@
       ssConfig.cropRight = parseInt(document.getElementById('ssCropRight').value) || 0;
       ssConfig.offsetX = parseInt(document.getElementById('ssOffsetX').value) || 0;
       ssConfig.offsetY = parseInt(document.getElementById('ssOffsetY').value) || 0;
+      ssConfig.renderService = document.getElementById('ssRenderService').value.trim();
     }
 
     window.ssSaveSource = function() {
