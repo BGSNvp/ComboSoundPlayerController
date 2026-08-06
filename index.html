@@ -51,6 +51,14 @@
     .sub-panel { display: none; }
     .sub-panel.active { display: block; }
 
+    /* Cycle controls */
+    .cycle-bar { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+    .cycle-btn { flex: 1 1 auto; min-width: 64px; padding: 8px 6px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-elev); color: var(--text); font: inherit; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+    .cycle-btn:active { opacity: 0.7; }
+    .cycle-btn.on { background: var(--success); color: #0a0d1a; border-color: var(--success); }
+    .cycle-interval { display: flex; align-items: center; gap: 4px; font-size: 0.75rem; color: var(--muted); white-space: nowrap; }
+    .cycle-interval input { width: 46px; padding: 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font: inherit; font-size: 0.8rem; }
+
     /* Player list — two side-by-side columns (by name / by number) */
     .select-columns { display: flex; gap: 8px; }
     .select-col { flex: 1; min-width: 0; }
@@ -281,6 +289,14 @@
 
     <!-- Sub-panel: Select -->
     <div id="subSelect" class="sub-panel active">
+    <div class="cycle-bar">
+      <button id="cycleToggle" class="cycle-btn" onclick="toggleCycle()">&#8635; Cycle: Off</button>
+      <button class="cycle-btn" onclick="cyclePrev()">&#9664; Prev</button>
+      <button class="cycle-btn" onclick="cycleNext()">Next &#9654;</button>
+      <label class="cycle-interval">Every
+        <input type="number" id="cycleSeconds" value="9" min="2" max="60" /> s
+      </label>
+    </div>
     <div class="select-columns">
       <div class="select-col">
         <div class="col-header">By Name</div>
@@ -562,8 +578,98 @@
     };
 
     window.hideOverlay = function() {
-      setDoc(liveRef, { visible: false }, { merge: true }).catch(() => showToast("Error"));
+      if (cycling) stopCycle();
+      setDoc(liveRef, { visible: false, cycle: false }, { merge: true }).catch(() => showToast("Error"));
     };
+
+    /* --- Cycle through players by jersey number --- */
+    let cycling = false;
+    let cycleTimer = null;
+    let cycleIndex = 0;
+
+    function cycleOrder() {
+      // Sort by jersey number ascending; non-numeric go last.
+      return roster.slice().sort((a, b) => {
+        const na = parseInt(a.number, 10);
+        const nb = parseInt(b.number, 10);
+        const va = isNaN(na) ? Infinity : na;
+        const vb = isNaN(nb) ? Infinity : nb;
+        if (va !== vb) return va - vb;
+        return String(a.name || "").localeCompare(String(b.name || ""));
+      });
+    }
+
+    function cycleShowAt(order, idx, cycleFlag) {
+      const p = order[idx];
+      if (!p) return;
+      activeId = p.id;
+      setDoc(liveRef, {
+        id: p.id, name: p.name, number: p.number, grade: p.grade || "",
+        height: p.height || "", weight: p.weight || "", video: p.video || "",
+        visible: true, cycle: !!cycleFlag, showTs: Date.now()
+      }, { merge: true }).catch(() => showToast("Error"));
+    }
+
+    function cycleIntervalMs() {
+      const s = parseInt(document.getElementById("cycleSeconds").value, 10);
+      return (isNaN(s) ? 9 : Math.min(Math.max(s, 2), 60)) * 1000;
+    }
+
+    function startCycle() {
+      const order = cycleOrder();
+      if (!order.length) { showToast("No players to cycle"); return; }
+      cycling = true;
+      updateCycleUI();
+      // Start from the current player if one is active, else the first.
+      const cur = order.findIndex(p => p.id === activeId);
+      cycleIndex = cur >= 0 ? cur : 0;
+      cycleShowAt(order, cycleIndex, true);
+      cycleTimer = setInterval(() => {
+        const ord = cycleOrder();
+        if (!ord.length) { stopCycle(); return; }
+        cycleIndex = (cycleIndex + 1) % ord.length;
+        cycleShowAt(ord, cycleIndex, true);
+      }, cycleIntervalMs());
+    }
+
+    function stopCycle() {
+      cycling = false;
+      if (cycleTimer) { clearInterval(cycleTimer); cycleTimer = null; }
+      updateCycleUI();
+      setDoc(liveRef, { cycle: false }, { merge: true }).catch(() => {});
+    }
+
+    function updateCycleUI() {
+      const btn = document.getElementById("cycleToggle");
+      if (!btn) return;
+      btn.textContent = (cycling ? "\u21bb Cycle: On" : "\u21bb Cycle: Off");
+      btn.classList.toggle("on", cycling);
+    }
+
+    window.toggleCycle = function() {
+      if (cycling) stopCycle(); else startCycle();
+    };
+
+    function cycleStep(dir) {
+      const order = cycleOrder();
+      if (!order.length) { showToast("No players"); return; }
+      const cur = order.findIndex(p => p.id === activeId);
+      cycleIndex = ((cur >= 0 ? cur : 0) + dir + order.length) % order.length;
+      cycleShowAt(order, cycleIndex, cycling);
+      // If auto-cycling, restart the interval so it waits a full period.
+      if (cycling && cycleTimer) {
+        clearInterval(cycleTimer);
+        cycleTimer = setInterval(() => {
+          const ord = cycleOrder();
+          if (!ord.length) { stopCycle(); return; }
+          cycleIndex = (cycleIndex + 1) % ord.length;
+          cycleShowAt(ord, cycleIndex, true);
+        }, cycleIntervalMs());
+      }
+    }
+
+    window.cycleNext = function() { cycleStep(1); };
+    window.cyclePrev = function() { cycleStep(-1); };
 
     /* --- Roster management --- */
     function saveRoster() {
@@ -1270,9 +1376,9 @@
         '<div class="global-group"><label>Position</label>' + buildArrowPad('_global') + '</div>' +
         '<div class="global-group"><label>Zoom</label>' +
         '<div class="zoom-controls">' +
-        '<button onclick="adjustZoom(-5)">&#8722;</button>' +
+        '<button onclick="adjustZoom(-25)">&#8722;</button>' +
         '<span id="zoomLabel">' + globalZoom + '%</span>' +
-        '<button onclick="adjustZoom(5)">+</button>' +
+        '<button onclick="adjustZoom(25)">+</button>' +
         '</div></div>' +
         '</div></div>';
 
@@ -1318,7 +1424,7 @@
     };
 
     window.adjustZoom = function(delta) {
-      globalZoom = Math.max(10, Math.min(300, globalZoom + delta));
+      globalZoom = Math.max(10, Math.min(500, globalZoom + delta));
       currentStyles._global = { offsetX: globalOffsetX, offsetY: globalOffsetY, zoom: globalZoom };
       const label = document.getElementById('zoomLabel');
       if (label) label.textContent = globalZoom + '%';
