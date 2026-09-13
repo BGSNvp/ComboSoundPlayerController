@@ -1323,7 +1323,13 @@
           label + '</button>';
       };
       var sortedByName = roster.slice().sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
-      var sortedByNum = roster.slice().sort(function(a, b) { return (parseInt(a.number) || 0) - (parseInt(b.number) || 0); });
+      // Numeric jerseys ascending; non-numeric (letters/blank) after them.
+      var sortedByNum = roster.slice().sort(function(a, b) {
+        var na = parseInt(a.number, 10), nb = parseInt(b.number, 10);
+        var va = isNaN(na) ? Infinity : na, vb = isNaN(nb) ? Infinity : nb;
+        if (va !== vb) return va - vb;
+        return String(a.number || '').localeCompare(String(b.number || ''));
+      });
       byName.innerHTML = sortedByName.map(function(p) { return btnHtml(p, esc(p.name) + (p.grade ? ' \u00b7 ' + esc(p.grade) : '')); }).join("");
       byNum.innerHTML = sortedByNum.map(function(p) { return btnHtml(p, '#' + esc(p.number) + ' ' + esc(p.name) + (p.grade ? ' \u00b7 ' + esc(p.grade) : '')); }).join("");
     }
